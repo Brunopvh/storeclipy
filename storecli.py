@@ -36,10 +36,6 @@ if (sys_kernel != 'Linux') and (sys_kernel != 'FreeBSD'):
     PrintText().red(f'Execute este program em sistemas Linux ou FreeBSD')
     exit()
 
-    
-#veracrypt()
-#youtube_dl_gui()
-
 
 parser = argparse.ArgumentParser(
             description='Instala programas em sistemas Linux e FreeBSD.'

@@ -102,16 +102,11 @@ class Pacman:
 				ProcessLoop(pid_pacman).process_loop()
 				
 	def install(self, pkgs):
-		if self.pkg_is_list(pkgs) == 'False':
-			return
-
 		self.pacman_process_loop() # Verificar se existe outro processo 'apt' em execução no sistema.
-
-		for PKG in pkgs: # Instalar cada pacote da lista, individualmente.
-			print(line)
-			print(f'Instalando: {PKG}')			
-			print(line)
-			os.system(f'sudo pacman -S --needed {PKG}')
+		print(line)
+		print(f'Instalando: {pkgs}')			
+		print(line)
+		os.system(f'sudo pacman -S --needed {pkgs}')
 
 	def update(self):
 		self.pacman_process_loop()

@@ -22,12 +22,15 @@ from lib.unpack_files import UnpackFiles
 from lib.os_release import ReleaseInfo
 from lib.downloader import *
 
+app_name = 'storeclipy'
+
 # Diretórios de trabalho
 DirHome = Path.home()
 DirBin = os.path.abspath(os.path.join(DirHome, '.local', 'bin'))
 DirDesktopFiles = os.path.abspath(os.path.join(DirHome, '.local', 'share', 'applications'))
 DirCache = os.path.abspath(os.path.join(DirHome, '.cache', 'storecli-ultimate'))
-DirDownloads = os.path.abspath(os.path.join(DirHome, '.cache', 'storecli-ultimate', 'downloads'))
+DirConfig = os.path.abspath(os.path.join(DirHome, '.config', app_name))
+DirDownloads = os.path.abspath(os.path.join(DirHome, '.cache', app_name, 'downloads'))
 #DirTemp = tempfile.mkdtemp()
 DirTemp = f'/tmp/{getuser()}_tmp'
 DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
@@ -36,6 +39,7 @@ list_dirs = [
 	DirHome,
     DirBin,
 	DirCache,
+    DirConfig,
 	DirDownloads,
 	DirTemp,
 	DirUnpack,
@@ -91,7 +95,7 @@ class YoutubeDlg(PrintText):
         
         self.yellow('Instalando python twodict')
         os.chdir(DirTemp)
-        if os.path.isdir('twodict') == 'False':
+        if os.path.isdir('twodict') == False:
             os.system(f'git clone https://github.com/MrS0m30n3/twodict.git')
             
         os.chdir('twodict')
@@ -154,19 +158,28 @@ class YoutubeDlg(PrintText):
         if is_executable('gtk-update-icon-cache'):
             os.system('gtk-update-icon-cache')
     
-    def freebsd(self):
-        if is_executable('youtube-dl-gui'):
-            self.yellow('Youtube-dl-gui já está instalado')
-        
+    def freebsd(self):    
         self.twodict() # Instalar o python twodict.
         Pkg().install(['py27-wxPython30']) # Instalar dependências
         self.compile_ytdlg() # compilar.
         self.file_desktop_root()
-        
+    
+    def archlinux(self):
+        Pacman().install('python2 python2-pip python2-setuptools python2-wxpython3')
+        self.twodict()
+        self.compile_ytdlg()
+        self.file_desktop_root()
+
     def install(self):
+        if is_executable('youtube-dl-gui'):
+            self.yellow('Youtube-dl-gui já está instalado')
+
         self.msg('Instalando youtube-dl-gui')
         if platform.system() == 'FreeBSD':
             self.freebsd()
+        elif platform.system() == 'Linux':
+            if ReleaseInfo().info('ID') == 'arch':
+                self.archlinux()
         
 
 	
