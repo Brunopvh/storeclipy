@@ -8,8 +8,13 @@ import shutil
 import sys
 from time import sleep
 
+from lib.colors import PrintText as p, SetColor
+from lib.yesno import YesNo
+
+s = SetColor()
+
 class UnpackFiles:
-	def __init__(self, destination=os.getcwd()):
+	def __init__(self, destination=''):
 		self.destination = destination
 
 	def check_destination(self):
@@ -25,21 +30,21 @@ class UnpackFiles:
 	def clear_dir(self):
 		os.chdir(self.destination)
 		content = os.listdir('.')
-		for DIR in content:
-			if (os.path.isdir(DIR) == True) or (os.path.isfile(DIR) == True):
-				print(f'Limpando: {DIR}')
-				try:
-					shutil.rmtree(DIR)
-				except:
-					print(f'Autenticação nescessária para remover ... {DIR}')
-					os.system(f'sudo rm -rf {DIR}')
+		for i in content:
+			p.yellow(f'Limpando: {i}')
+			try:
+				shutil.rmtree(i)
+			except:
+				p.red(f'Falha ao tentar remover: {i}')
+				if YesNo.yesno(f'Deseja remover {i}') == 'True':
+					os.system(f'sudo rm -rf {i}')
 
 	def tar(self, file):
 		# https://docs.python.org/3.3/library/tarfile.html
 
 		# Verificar se o arquivo e do tipo tar
 		if not tarfile.is_tarfile(file):
-			print(f'O arquivo NÃO é do tipo {s.red}.tar{s.reset}: {file}')
+			p.red(f'O arquivo NÃO é do tipo {s.red}.tar{s.reset}: {file}')
 			return
 
 		if self.check_destination() == 'False':
@@ -47,16 +52,16 @@ class UnpackFiles:
 			return
 
 		self.clear_dir()
-		print(f'Descomprimindo: {file}', end= ' ')
+		print(f'{s.yellow}[+]{s.reset} Descomprimindo: {file}', end= ' ')
 		os.chdir(self.destination)
 		try:
 			tar = tarfile.open(file)
 			tar.extractall()
 			tar.close()
-			print('OK')
+			p.sblue('OK')
 		except:
 			print()
-			print(f'Falha na descompressão de: {file}')
+			p.red(f'Falha na descompressão de: {file}')
 			sys.exit('1')
 
 	def zip(self, file):
@@ -65,7 +70,7 @@ class UnpackFiles:
 
 		# Verificar se o arquivo e do tipo zip
 		if not is_zipfile(file):
-			print(f'O arquivo NÃO é do tipo (.zip) ... {file}')
+			p.red(f'O arquivo NÃO é do tipo {s.red}.zip{s.reset}: {file}')
 			return
 
 		if self.check_destination() == 'False':
@@ -73,7 +78,7 @@ class UnpackFiles:
 			return
 
 		self.clear_dir()
-		print(f'Descomprimindo: {file}', end= ' ')
+		print(f'{s.yellow}[+]{s.reset} Descomprimindo: {file}', end= ' ')
 		os.chdir(self.destination)
 
 		try:
@@ -81,10 +86,10 @@ class UnpackFiles:
 				# printing all the contents of the zip file 
 				# zip.printdir()  
 				zip.extractall()
-			print('OK')
+			p.sblue('OK')
 		except:
 			print()
-			print(f'Falha na descompressão de: {file}')
+			p.red(f'Falha na descompressão de: {file}')
 			sys.exit('1')
 		
 			
