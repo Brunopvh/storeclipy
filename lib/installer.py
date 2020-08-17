@@ -104,39 +104,69 @@ def get_links(url):
         link = LINK.get('href')
         links.append(link)
     return links
+
+def sha256(file, sum):
+    print(f'Caulculando hash do arquivo ... {file}')
+    f1 = open(file, 'rb')
+    h = hashlib.sha256()
+    h.update(file.read())
+    hash_file = h.hexdigest() 
+    print(hash_file)
+
+    if (hash_file) == sum:
+        return True
+    else:
+        return False
     
 class Veracrypt(PrintText):
     def __init__(self):
+        if is_executable('veracrypt'):
+            self.yellow('veracrypt já está instalado')
+        self.msg('Instalando veracrypt')
         self.URL = 'https://www.veracrypt.fr/en/Downloads.html'
+        self.veracrypt_sha256sum_txt = 'veracrypt-sha256.txt'
+        self.veracrypt_sha256sum_sig = 'veracrypt-sha256.txt.sig'
+        self.veracrypt_urls = get_links(self.URL)
 
-    def get_veracrypt_urls(self):
-        return get_links(self.URL)
+    def get_shasum_file(self):
+        '''
+        Função para baixar o arquivo de texto contendo as hashs e o arquivo ".sig".
+        '''
+        urls = self.set_systems_urls()
+        url_sha256sum_txt = urls['sha256_txt']
+        url_sha256sum_sig = urls['sha256_txt_sig']
+        
+        path_file_sha256sum_txt = '{}/{}'.format(DirTemp, self.veracrypt_sha256sum_txt)
+        path_file_sha256sum_sig = '{}/{}'.format(DirTemp, self.veracrypt_sha256sum_sig)
+        wget_download(url_sha256sum_txt, path_file_sha256sum_txt)
+        wget_download(url_sha256sum_sig, path_file_sha256sum_sig)
+
+    def set_systems_urls(self):
+        systems_urls = {'info': 'URL de downloads para diversos sistemas operacionais'}
+
+        for L in self.veracrypt_urls:
+            if ('sha256sum.txt' in L) and (not '.sig' in L):
+                systems_urls['sha256_txt'] = L
+            elif ('sha256sum.txt' in L) and ('.sig' in L):
+                systems_urls['sha256_txt_sig'] = L
+            elif ('.tar.bz2' in L) and (not 'freebsd' in L) and ('veracrypt' in L):
+                systems_urls['linux'] = L
+                systems_urls['linux_sig'] = f'{L}.sig'
+                
+
+        return systems_urls
+
 
     def linux(self):
-        # Obter o link de download do pacote .tar + arquiovo .sig
-        links_veracrypt = self.get_veracrypt_urls()
-        for L in links_veracrypt:
-            if ('.tar.bz2' in L) and (not 'freebsd' in L) and ('veracrypt' in L):
-                url_veracrypt_linux = L
-                url_signature_file = f'{url_veracrypt_linux}.sig'
-                break
+        # Obter o link de download do pacote ".tar".
+        urls = self.set_systems_urls()
+        url_veracrypt_linux = urls['linux']
 
         # Definir o camiho completo do arquivo a ser baixado
         path_file_veracrypt = '{}/{}'.format(DirDownloads, os.path.basename(url_veracrypt_linux))
-        path_file_veracrypt_sig = '{}.sig'.format(path_file_veracrypt)
         
-        # Baixar os arquivos
-        run_download(url_veracrypt_linux, path_file_veracrypt)
-        wget_download(url_signature_file, path_file_veracrypt_sig)
-
-
-        print('Caulculando hash')
-        f1 = open(path_file_veracrypt_sig, 'rb')
-        h = hashlib.sha256()
-        h.update(f.read())
-        print(h.hexdigest())
-        
-
+        wget_download(url_veracrypt_linux, path_file_veracrypt)
+        self.get_shasum_file()
 
     def veracrypt_freebsd():
     	'''
@@ -155,10 +185,6 @@ class Veracrypt(PrintText):
     	os.system('./veracrypt-1.24-Update7-freebsd1164-setup-gui-x64')
 
     def install(self):
-        if is_executable('veracrypt'):
-            self.yellow('veracrypt já está instalado')
-
-        self.msg('Instalando veracrypt')
         if platform.system() == 'FreeBSD':
             self.freebsd()
         elif platform.system() == 'Linux':

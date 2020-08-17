@@ -53,9 +53,9 @@ def wget_download(url, output_path):
         if length and (length != None):
             if length >= (1024 * 1024):
                 lengthMB = float(length / int(1024 * 1024))
-                print('Total ... {:.2f}Kb'.format(lengthMB))
+                print('Total ... {:.2f}MB'.format(lengthMB))
             else:
-                print('Total ... {} MB'.format(length))
+                print('Total ... {} Kb'.format(length))
 
     wget.download(url, output_path)
     print(' OK')
