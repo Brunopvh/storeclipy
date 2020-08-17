@@ -14,7 +14,7 @@ except:
 try:
     import wget
 except:
-    print('Instale o módulo wget: pip install wget --user')
+    print('Instale o módulo wget: pip3 install wget --user')
     sys.exit()
 
 class DownloadProgressBar(tqdm):
@@ -44,6 +44,19 @@ def wget_download(url, output_path):
         return
     
     print(f'Baixando ... {output_path}')
+    info = urllib.request.urlopen(url)
+    try:
+        length = int(info.getheader('content-length'))
+    except:
+        pass
+    else:
+        if length and (length != None):
+            if length >= (1024 * 1024):
+                lengthMB = float(length / int(1024 * 1024))
+                print('Total ... {:.2f}Kb'.format(lengthMB))
+            else:
+                print('Total ... {} MB'.format(length))
+
     wget.download(url, output_path)
     print(' OK')
 

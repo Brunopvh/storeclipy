@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
+'''
+REFERÊNCIAS
+  https://www.it-swarm.dev/pt/python/como-posso-obter-links-href-de-html-usando-python/969762638/
+  https://www.crummy.com/software/BeautifulSoup/bs4/doc/
+  https://pythonhelp.wordpress.com/tag/hashlib/
+
+'''
+
 
 import os, sys
 import subprocess
@@ -9,6 +17,7 @@ import tarfile
 import shutil
 import platform
 import urllib.request
+import hashlib
 from pathlib import Path
 from getpass import getuser
 from zipfile import ZipFile, is_zipfile
@@ -21,6 +30,12 @@ from lib.pkg import Pkg
 from lib.unpack_files import UnpackFiles
 from lib.os_release import ReleaseInfo
 from lib.downloader import *
+
+try:
+    from bs4 import BeautifulSoup
+except Exception as erro:
+    print(erro, ' => execute: pip3 install bs4 --user')
+    sys.exit()
 
 app_name = 'storeclipy'
 
@@ -46,35 +61,113 @@ list_dirs = [
     DirDesktopFiles
 ]
 
+def mkdir(path):
+        try:
+            if not os.path.exists(path):
+                os.makedirs(path, 0o700)
+                return True
+        except Exception as erro:
+            print("[!] Não foi possível criar o diretório: {0}".format(path))
+            print(erro)
+            return False
+        if not os.access(path, os.W_OK):
+            print("[!] Você não tem permissão de escrita em: {0}".format(path))
+            return False
+        return True
+
 for DIR in list_dirs:
-	if os.path.isdir(DIR) == False:
-		print(f'Criando: {DIR}')
-		os.makedirs(DIR)
+	mkdir(DIR)
+
 unpack = UnpackFiles(DirUnpack)
 
 def is_executable(exec):
-	if int(subprocess.getstatusoutput(f'command -v {exec} 2> /dev/null')[0]) == int('0'):
-		return 'True'
+	if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
+		return True
 	else:
-		return 'False'
+		return False
+
+def get_html(url):
+    try: 
+        print(f'Conectando ... {url}')
+        html = urllib.request.urlopen(url).read()
+    except Exception as erro:
+        print(f'Falha: {erro}')
+        sys.exit()
+    else:
+        return html
+
+def get_links(url):
+    links = []
+    html = get_html(url)
+    soup = BeautifulSoup(html, 'html.parser')
+    for LINK in soup.findAll('a'):
+        link = LINK.get('href')
+        links.append(link)
+    return links
     
-		
-def veracrypt():
-	'''
-	Requerimentos: FUSE library and tools, device mapper tools
-	
-	'''
-	URL_VERACRYPT_BSD = 'https://launchpadlibrarian.net/492507323/veracrypt-1.24-Update7-freebsd-setup.tar.bz2'
-	path_file = f'{DirDownloads}/veracrypt-1.24-Update7-freebsd-setup.tar.bz2'
-	
-	PrintText().msg('Instalando veracrypt')
-		
-	wget_download(URL_VERACRYPT_BSD, path_file)
-	unpack.tar(path_file)
-	os.chdir(DirUnpack)
-	os.system('chmod +x veracrypt-1.24-Update7-freebsd1164-setup-gui-x64')
-	os.system('./veracrypt-1.24-Update7-freebsd1164-setup-gui-x64')
-    
+class Veracrypt(PrintText):
+    def __init__(self):
+        self.URL = 'https://www.veracrypt.fr/en/Downloads.html'
+
+    def get_veracrypt_urls(self):
+        return get_links(self.URL)
+
+    def linux(self):
+        # Obter o link de download do pacote .tar + arquiovo .sig
+        links_veracrypt = self.get_veracrypt_urls()
+        for L in links_veracrypt:
+            if ('.tar.bz2' in L) and (not 'freebsd' in L) and ('veracrypt' in L):
+                url_veracrypt_linux = L
+                url_signature_file = f'{url_veracrypt_linux}.sig'
+                break
+
+        # Definir o camiho completo do arquivo a ser baixado
+        path_file_veracrypt = '{}/{}'.format(DirDownloads, os.path.basename(url_veracrypt_linux))
+        path_file_veracrypt_sig = '{}.sig'.format(path_file_veracrypt)
+        
+        # Baixar os arquivos
+        run_download(url_veracrypt_linux, path_file_veracrypt)
+        wget_download(url_signature_file, path_file_veracrypt_sig)
+
+
+        print('Caulculando hash')
+        f1 = open(path_file_veracrypt_sig, 'rb')
+        h = hashlib.sha256()
+        h.update(f.read())
+        print(h.hexdigest())
+        
+
+
+    def veracrypt_freebsd():
+    	'''
+    	Requerimentos: FUSE library and tools, device mapper tools
+    	
+    	'''
+    	URL_VERACRYPT_BSD = 'https://launchpadlibrarian.net/492507323/veracrypt-1.24-Update7-freebsd-setup.tar.bz2'
+    	path_file = f'{DirDownloads}/veracrypt-1.24-Update7-freebsd-setup.tar.bz2'
+    	
+    	PrintText().msg('Instalando veracrypt')
+    		
+    	wget_download(URL_VERACRYPT_BSD, path_file)
+    	unpack.tar(path_file)
+    	os.chdir(DirUnpack)
+    	os.system('chmod +x veracrypt-1.24-Update7-freebsd1164-setup-gui-x64')
+    	os.system('./veracrypt-1.24-Update7-freebsd1164-setup-gui-x64')
+
+    def install(self):
+        if is_executable('veracrypt'):
+            self.yellow('veracrypt já está instalado')
+
+        self.msg('Instalando veracrypt')
+        if platform.system() == 'FreeBSD':
+            self.freebsd()
+        elif platform.system() == 'Linux':
+            self.linux()
+
+#-----------------------------------------------------------#
+# Internet
+#-----------------------------------------------------------#
+
 class YoutubeDlg(PrintText):
     def __init__(self):
         self.URL = 'https://github.com/MrS0m30n3/youtube-dl-gui/archive/master.zip'

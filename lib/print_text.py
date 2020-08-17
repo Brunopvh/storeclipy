@@ -64,7 +64,7 @@ class PrintText:
 		
 	def msg(self, text=''):
 		self.line()
-		print(text)
+		print(text.center(columns))
 		self.line()
 	
 	def line(self, char=None):

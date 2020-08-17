@@ -125,4 +125,6 @@ elif args.pkg_for_install:          # Instalar um programa
         RunInstaller().theHarvester()
     elif args.pkg_for_install == 'youtube-dl-gui':
         YoutubeDlg().install()
+    elif args.pkg_for_install == 'veracrypt':
+        Veracrypt().install()
 
