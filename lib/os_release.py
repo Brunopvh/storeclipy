@@ -5,15 +5,12 @@
 import os, sys
 import platform
 
-
-if platform.system() != 'Linux':
-	print('Seu sistema não é Linux - saindo...')
-	sys.exit()
-
 if os.path.isfile('/etc/os-release') == True:
 	release_file = '/etc/os-release'
 elif os.path.isfile('/usr/lib/os-release') == True:
 	release_file = '/usr/lib/os-release'
+elif os.path.isfile('/usr/local/etc/os-release') == True:
+    release_file = '/usr/local/etc/os-release'
 else:
 	print('Arquivo os-release não encontrado - saindo...')
 	sys.exit()

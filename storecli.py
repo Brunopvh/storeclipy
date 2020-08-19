@@ -7,7 +7,7 @@ import re
 import argparse
 import platform 
 
-__version__ = '2020-08-15'
+__version__ = '2020-08-18'
 
 # Endereço deste script no disco.
 dir_root = os.path.dirname(os.path.realpath(__file__)) 

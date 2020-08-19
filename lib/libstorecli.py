@@ -186,7 +186,7 @@ class Veracrypt(PrintText):
             self.red('Falha na instalação de Veracrypt')
             return False
 
-    def veracrypt_freebsd():
+    def freebsd(self):
         '''
         Requerimentos: FUSE library and tools, device mapper tools
         '''
@@ -199,7 +199,7 @@ class Veracrypt(PrintText):
                 break
         
         # Definir o camiho completo do arquivo a ser baixado
-        path_veracrypt_tarfile = '{}/{}'.format(DirDownloads, os.path.basename(url_veracrypt_linux))
+        path_veracrypt_tarfile = '{}/{}'.format(DirDownloads, os.path.basename(url_veracrypt_freebsd))
         path_veracrypt_tarfile_sig = f'{path_veracrypt_tarfile}.sig'
         
         wget_download(url_veracrypt_freebsd, path_veracrypt_tarfile)
@@ -220,6 +220,10 @@ class Veracrypt(PrintText):
             if 'setup-gui-x64' in file:
                 print(f'Executando ... {DirUnpack}/{file}')
                 os.system(f'./{file}')
+                
+        if os.path.isfile('/usr/share/applications/veracrypt.desktop'):
+            print('Copiando ... /usr/share/local/applications/veracrypt.desktop')
+            os.system('sudo cp /usr/share/applications/veracrypt.desktop /usr/local/share/applications/veracrypt.desktop')
 
         if is_executable('veracrypt'):
             self.green('Veracrypt instalado com sucesso')
@@ -229,6 +233,7 @@ class Veracrypt(PrintText):
             return False
 
     def install(self):
+        print('Sistema: {}'.format(ReleaseInfo().info('ID')))
         if platform.system() == 'FreeBSD':
             self.freebsd()
         elif platform.system() == 'Linux':
