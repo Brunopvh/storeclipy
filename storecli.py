@@ -23,7 +23,7 @@ sys.path.insert(0, dir_root)
 
 #from lib.processloop import ProcessLoop
 from lib.print_text import PrintText  
-from lib.installer import *
+from lib.libstorecli import *
 
 # root
 if os.geteuid() == int('0'):
@@ -127,4 +127,6 @@ elif args.pkg_for_install:          # Instalar um programa
         YoutubeDlg().install()
     elif args.pkg_for_install == 'veracrypt':
         Veracrypt().install()
+    else:
+        print(f'Programa indisponível: {args.pkg_for_install}')
 

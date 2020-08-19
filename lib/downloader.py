@@ -43,7 +43,7 @@ def wget_download(url, output_path):
         print(f'Arquivo encontrado ... {output_path}')
         return
     
-    print(f'Baixando ... {output_path}')
+    print(f'Conectando ... {url}')
     info = urllib.request.urlopen(url)
     try:
         length = int(info.getheader('content-length'))
@@ -57,8 +57,14 @@ def wget_download(url, output_path):
             else:
                 print('Total ... {} Kb'.format(length))
 
-    wget.download(url, output_path)
-    print(' OK')
+    print(f'Baixando ... {output_path}')
+    try:
+        wget.download(url, output_path)
+    except Exception as erro:
+        print(' ')
+        print(erro)
+    else:
+        print(' OK')
 
 
 

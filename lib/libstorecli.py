@@ -51,13 +51,13 @@ DirTemp = f'/tmp/{getuser()}_tmp'
 DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
 
 list_dirs = [
-	DirHome,
+    DirHome,
     DirBin,
-	DirCache,
+    DirCache,
     DirConfig,
-	DirDownloads,
-	DirTemp,
-	DirUnpack,
+    DirDownloads,
+    DirTemp,
+    DirUnpack,
     DirDesktopFiles
 ]
 
@@ -76,15 +76,15 @@ def mkdir(path):
         return True
 
 for DIR in list_dirs:
-	mkdir(DIR)
+    mkdir(DIR)
 
 unpack = UnpackFiles(DirUnpack)
 
 def is_executable(exec):
-	if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
-		return True
-	else:
-		return False
+    if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
+        return True
+    else:
+        return False
 
 def get_html(url):
     try: 
@@ -98,12 +98,18 @@ def get_html(url):
 
 def get_links(url):
     links = []
-    html = get_html(url)
-    soup = BeautifulSoup(html, 'html.parser')
-    for LINK in soup.findAll('a'):
-        link = LINK.get('href')
-        links.append(link)
-    return links
+    try: 
+        print(f'Conectando ... {url}')
+        html = urllib.request.urlopen(url).read()
+    except Exception as erro:
+        print(f'Falha: {erro}')
+        sys.exit()
+    else:
+        soup = BeautifulSoup(html, 'html.parser')
+        for LINK in soup.findAll('a'):
+            link = LINK.get('href')
+            links.append(link)
+        return links
 
 def sha256(file, sum):
     print(f'Caulculando hash do arquivo ... {file}')
@@ -117,6 +123,17 @@ def sha256(file, sum):
         return True
     else:
         return False
+
+def check_gpg(sig_file, file):
+    print(f'gpg: verificando arquivo ... {file}', end=' ')
+    out = subprocess.getstatusoutput(f'gpg --verify {sig_file} {file}')
+    if out[0] == 0:
+        print('OK')
+        return True
+    else:
+        print('')
+        PrintText().red(out[1])
+        return False
     
 class Veracrypt(PrintText):
     def __init__(self):
@@ -124,65 +141,92 @@ class Veracrypt(PrintText):
             self.yellow('veracrypt já está instalado')
         self.msg('Instalando veracrypt')
         self.URL = 'https://www.veracrypt.fr/en/Downloads.html'
-        self.veracrypt_sha256sum_txt = 'veracrypt-sha256.txt'
-        self.veracrypt_sha256sum_sig = 'veracrypt-sha256.txt.sig'
-        self.veracrypt_urls = get_links(self.URL)
+        self.veracrypt_sha256sum_txt = f'{DirTemp}/veracrypt-sha256.txt'
+        self.veracrypt_sha256sum_sig = f'{DirTemp}veracrypt-sha256.txt.sig'
 
-    def get_shasum_file(self):
-        '''
-        Função para baixar o arquivo de texto contendo as hashs e o arquivo ".sig".
-        '''
-        urls = self.set_systems_urls()
-        url_sha256sum_txt = urls['sha256_txt']
-        url_sha256sum_sig = urls['sha256_txt_sig']
-        
-        path_file_sha256sum_txt = '{}/{}'.format(DirTemp, self.veracrypt_sha256sum_txt)
-        path_file_sha256sum_sig = '{}/{}'.format(DirTemp, self.veracrypt_sha256sum_sig)
-        wget_download(url_sha256sum_txt, path_file_sha256sum_txt)
-        wget_download(url_sha256sum_sig, path_file_sha256sum_sig)
-
-    def set_systems_urls(self):
-        systems_urls = {'info': 'URL de downloads para diversos sistemas operacionais'}
-
-        for L in self.veracrypt_urls:
-            if ('sha256sum.txt' in L) and (not '.sig' in L):
-                systems_urls['sha256_txt'] = L
-            elif ('sha256sum.txt' in L) and ('.sig' in L):
-                systems_urls['sha256_txt_sig'] = L
-            elif ('.tar.bz2' in L) and (not 'freebsd' in L) and ('veracrypt' in L):
-                systems_urls['linux'] = L
-                systems_urls['linux_sig'] = f'{L}.sig'
-                
-
-        return systems_urls
-
+    def veracrypt_urls(self):
+        return get_links(self.URL)
 
     def linux(self):
         # Obter o link de download do pacote ".tar".
-        urls = self.set_systems_urls()
-        url_veracrypt_linux = urls['linux']
-
-        # Definir o camiho completo do arquivo a ser baixado
-        path_file_veracrypt = '{}/{}'.format(DirDownloads, os.path.basename(url_veracrypt_linux))
+        urls = self.veracrypt_urls()
+        for URL in urls:
+            if (URL[-4:] == '.bz2') and (not 'freebsd' in URL) and ('setup' in URL) and (not 'legacy' in URL):
+                url_veracrypt_linux = URL
+                url_veracrypt_linux_sig = f'{URL}.sig'
+                break
         
-        wget_download(url_veracrypt_linux, path_file_veracrypt)
-        self.get_shasum_file()
+        # Definir o camiho completo do arquivo a ser baixado
+        path_veracrypt_tarfile = '{}/{}'.format(DirDownloads, os.path.basename(url_veracrypt_linux))
+        path_veracrypt_tarfile_sig = f'{path_veracrypt_tarfile}.sig'
+        
+        wget_download(url_veracrypt_linux, path_veracrypt_tarfile)
+        wget_download(url_veracrypt_linux_sig, path_veracrypt_tarfile_sig)
+
+        self.yellow('Importando key veracrypt')
+        os.system('curl -s https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc | gpg --import - 1> /dev/null 2>&1')
+
+        # Verificar a intergridade do arquivo ".txt" que contém as hashs 
+        if check_gpg(path_veracrypt_tarfile_sig, path_veracrypt_tarfile) != True:
+            self.red(f'Arquivo não confiavel: {path_veracrypt_tarfile}')
+            return False
+        
+        unpack.tar(path_veracrypt_tarfile)
+        os.chdir(DirUnpack)
+        files_in_dir = os.listdir(DirUnpack)
+        for file in files_in_dir:
+            if 'setup-gui-x64' in file:
+                print(f'Executando ... {DirUnpack}/{file}')
+                os.system(f'./{file}')
+
+        if is_executable('veracrypt'):
+            self.green('Veracrypt instalado com sucesso')
+            return True
+        else:
+            self.red('Falha na instalação de Veracrypt')
+            return False
 
     def veracrypt_freebsd():
-    	'''
-    	Requerimentos: FUSE library and tools, device mapper tools
-    	
-    	'''
-    	URL_VERACRYPT_BSD = 'https://launchpadlibrarian.net/492507323/veracrypt-1.24-Update7-freebsd-setup.tar.bz2'
-    	path_file = f'{DirDownloads}/veracrypt-1.24-Update7-freebsd-setup.tar.bz2'
-    	
-    	PrintText().msg('Instalando veracrypt')
-    		
-    	wget_download(URL_VERACRYPT_BSD, path_file)
-    	unpack.tar(path_file)
-    	os.chdir(DirUnpack)
-    	os.system('chmod +x veracrypt-1.24-Update7-freebsd1164-setup-gui-x64')
-    	os.system('./veracrypt-1.24-Update7-freebsd1164-setup-gui-x64')
+        '''
+        Requerimentos: FUSE library and tools, device mapper tools
+        '''
+        # Obter o link de download do pacote ".tar".
+        urls = self.veracrypt_urls()
+        for URL in urls:
+            if (URL[-4:] == '.bz2') and ('freebsd' in URL) and ('setup' in URL) and (not 'legacy' in URL):
+                url_veracrypt_freebsd = URL
+                url_veracrypt_freebsd_sig = f'{URL}.sig'
+                break
+        
+        # Definir o camiho completo do arquivo a ser baixado
+        path_veracrypt_tarfile = '{}/{}'.format(DirDownloads, os.path.basename(url_veracrypt_linux))
+        path_veracrypt_tarfile_sig = f'{path_veracrypt_tarfile}.sig'
+        
+        wget_download(url_veracrypt_freebsd, path_veracrypt_tarfile)
+        wget_download(url_veracrypt_freebsd_sig, path_veracrypt_tarfile_sig)
+
+        self.yellow('Importando key veracrypt')
+        os.system('curl -s https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc | gpg --import - 1> /dev/null 2>&1')
+
+        # Verificar a intergridade do arquivo ".txt" que contém as hashs 
+        if check_gpg(path_veracrypt_tarfile_sig, path_veracrypt_tarfile) != True:
+            self.red(f'Arquivo não confiavel: {path_veracrypt_tarfile}')
+            return False
+        
+        unpack.tar(path_veracrypt_tarfile)
+        os.chdir(DirUnpack)
+        files_in_dir = os.listdir(DirUnpack)
+        for file in files_in_dir:
+            if 'setup-gui-x64' in file:
+                print(f'Executando ... {DirUnpack}/{file}')
+                os.system(f'./{file}')
+
+        if is_executable('veracrypt'):
+            self.green('Veracrypt instalado com sucesso')
+            return True
+        else:
+            self.red('Falha na instalação de Veracrypt')
+            return False
 
     def install(self):
         if platform.system() == 'FreeBSD':
@@ -301,5 +345,5 @@ class YoutubeDlg(PrintText):
                 self.archlinux()
         
 
-	
-	
+    
+    

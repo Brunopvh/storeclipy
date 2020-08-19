@@ -24,8 +24,8 @@ class UnpackFiles:
 
 	def clear_dir(self):
 		os.chdir(self.destination)
-		content = os.listdir('.')
-		for DIR in content:
+		dirs = os.listdir('.')
+		for DIR in dirs:
 			if (os.path.isdir(DIR) == True) or (os.path.isfile(DIR) == True):
 				print(f'Limpando: {DIR}')
 				try:
