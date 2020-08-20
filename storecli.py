@@ -7,7 +7,7 @@ import re
 import argparse
 import platform 
 
-__version__ = '2020-08-18'
+__version__ = '2020-08-19'
 
 # Endereço deste script no disco.
 dir_root = os.path.dirname(os.path.realpath(__file__)) 
@@ -127,6 +127,8 @@ elif args.pkg_for_install:          # Instalar um programa
         YoutubeDlg().install()
     elif args.pkg_for_install == 'veracrypt':
         Veracrypt().install()
+    elif args.pkg_for_install == 'pycharm':
+    	Pycharm().install()
     else:
         print(f'Programa indisponível: {args.pkg_for_install}')
 

@@ -9,7 +9,6 @@ REFERÊNCIAS
 
 '''
 
-
 import os, sys
 import subprocess
 import tempfile
@@ -46,6 +45,7 @@ DirDesktopFiles = os.path.abspath(os.path.join(DirHome, '.local', 'share', 'appl
 DirCache = os.path.abspath(os.path.join(DirHome, '.cache', 'storecli-ultimate'))
 DirConfig = os.path.abspath(os.path.join(DirHome, '.config', app_name))
 DirDownloads = os.path.abspath(os.path.join(DirHome, '.cache', app_name, 'downloads'))
+DirIcons = os.path.abspath(os.path.join(DirHome, '.local', 'share', 'icons'))
 #DirTemp = tempfile.mkdtemp()
 DirTemp = f'/tmp/{getuser()}_tmp'
 DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
@@ -113,15 +113,16 @@ def get_links(url):
 
 def sha256(file, sum):
     print(f'Caulculando hash do arquivo ... {file}')
-    f1 = open(file, 'rb')
+    f = open(file, 'rb')
     h = hashlib.sha256()
-    h.update(file.read())
+    h.update(f.read())
     hash_file = h.hexdigest() 
-    print(hash_file)
-
+    
     if (hash_file) == sum:
+        print('OK')
         return True
     else:
+        print('FALHA')
         return False
 
 def check_gpg(sig_file, file):
@@ -190,7 +191,6 @@ class Veracrypt(PrintText):
         '''
         Requerimentos: FUSE library and tools, device mapper tools
         '''
-        # Obter o link de download do pacote ".tar".
         urls = self.veracrypt_urls()
         for URL in urls:
             if (URL[-4:] == '.bz2') and ('freebsd' in URL) and ('setup' in URL) and (not 'legacy' in URL):
@@ -208,7 +208,6 @@ class Veracrypt(PrintText):
         self.yellow('Importando key veracrypt')
         os.system('curl -s https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc | gpg --import - 1> /dev/null 2>&1')
 
-        # Verificar a intergridade do arquivo ".txt" que contém as hashs 
         if check_gpg(path_veracrypt_tarfile_sig, path_veracrypt_tarfile) != True:
             self.red(f'Arquivo não confiavel: {path_veracrypt_tarfile}')
             return False
@@ -238,6 +237,34 @@ class Veracrypt(PrintText):
             self.freebsd()
         elif platform.system() == 'Linux':
             self.linux()
+
+#-----------------------------------------------------------#
+# Desenvolvimento
+#-----------------------------------------------------------#
+class Pycharm(PrintText):
+    def __init__(self):
+        self.pycharm_dir = f'{DirBin}/pycharm-community'
+        self.pycharm_script = f'{DirBin}/pycharm'
+        self.pycharm_file_desktop = f'{DirDesktopFiles}/pycharm.desktop'
+        self.pycharm_png = f'{DirIcons}/pycharm.png'
+        
+    def linux(self):
+        pycharm_shasum_linux = '60b2eeea5237f536e5d46351fce604452ce6b16d037d2b7696ef37726e1ff78a'  
+        url_pycharm_linux = 'https://download-cf.jetbrains.com/python/pycharm-community-2020.2.tar.gz'
+        pycharmTarFile = os.path.abspath(os.path.join(DirDownloads, os.path.basename(url_pycharm_linux)))
+
+        run_download(url_pycharm_linux, pycharmTarFile)
+        sha256(pycharmTarFile, pycharm_shasum_linux)
+        unpack.tar(pycharmTarFile)
+        os.chdir(DirUnpack)
+        os.system('mv pycharm-* {}'.format(self.pycharm_dir))
+        os.chdir(self.pycharm_dir)
+
+    def install(self):
+        if platform.system() == 'Linux':
+            self.linux()
+
+
 
 #-----------------------------------------------------------#
 # Internet
