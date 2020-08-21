@@ -7,7 +7,7 @@ import re
 import argparse
 import platform 
 
-__version__ = '2020-08-19'
+__version__ = '2020-08-20'
 
 # Endereço deste script no disco.
 dir_root = os.path.dirname(os.path.realpath(__file__)) 
@@ -129,6 +129,8 @@ elif args.pkg_for_install:          # Instalar um programa
         Veracrypt().install()
     elif args.pkg_for_install == 'pycharm':
     	Pycharm().install()
+    elif args.pkg_for_install == 'google-chrome':
+    	Browser().google_chrome()
     else:
         print(f'Programa indisponível: {args.pkg_for_install}')
 

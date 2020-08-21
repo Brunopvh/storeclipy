@@ -264,6 +264,51 @@ class Pycharm(PrintText):
         if platform.system() == 'Linux':
             self.linux()
 
+#-----------------------------------------------------------#
+# Navegadores
+#-----------------------------------------------------------#
+class Browser(PrintText):
+    def __init__(self):
+        self.google_chrome_url_deb = 'https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb'
+    
+    def google_chrome(self):
+        self.google_chrome_repo_debian = 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main'
+        
+    def debian(self):
+        self.green('Adicionando key e repositório google-chrome')
+        os.system("wget -q 'https://dl.google.com/linux/linux_signing_key.pub' -O- | sudo apt-key add -")
+        os.system(f'echo "{self.google_chrome_repo_debian}" | sudo tee /etc/apt/sources.list.d/google-chrome.list')
+        AptGet().update()
+        AptGet().install('google-chrome-stable')
+        
+    def archlinux(self):
+        os.chdir(DirTemp)
+        os.system('git clone https://aur.archlinux.org/google-chrome.git')
+        Pacman().install('base-devel pipewire')
+        os.chdir('google-chrome')
+        self.blue('Executando: makepkg -s -f')
+        os.system('makepkg -s -f')
+        files = os.listdir('.')
+        for f in files:
+            if ('.tar.zst' in f) and ('google-chrome' in f):
+                print('Renomeando ... google-chrome.tar.zst')
+                shutil.move(f, 'google-chrome.tar.zst')
+         
+        print('Executando ... sudo pacman -U --noconfirm google-chrome.tar.zst')
+        os.system('sudo pacman -U --noconfirm google-chrome.tar.zst')
+        
+    def google_chrome(self):
+        if is_executable('google-chrome-stable') == True:
+            self.yellow('google-chrome já está instalado...')
+            return True
+
+        self.msg('Instalando google-chrome')
+        info = ReleaseInfo().info('ID') # Detectar qual o sistema base.
+        if info == 'archh':
+            self.archlinux()
+        else:
+            self.red('Instalação do google-chrome indisponível para o seu sistema')
+            sleep(1)
 
 
 #-----------------------------------------------------------#

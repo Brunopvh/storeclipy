@@ -102,16 +102,11 @@ class AptGet:
 				ProcessLoop(pid_apt).process_loop()
 				
 	def install(self, pkgs):
-		if self.pkg_is_list(pkgs) == 'False':
-			return
-
 		self.apt_process_loop() # Verificar se existe outro processo 'apt' em execução no sistema.
-
-		for PKG in pkgs: # Instalar cada pacote da lista, individualmente.
-			print(line)
-			print(f'Instalando: {PKG}')			
-			print(line)
-			os.system(f'sudo apt install {PKG}')
+		print(line)
+		print(f'Instalando: {pkgs}')			
+		print(line)
+		os.system(f'sudo apt install {pkgs}')
 
 	def update(self):
 		print(line)
