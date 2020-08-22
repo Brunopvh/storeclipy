@@ -270,18 +270,32 @@ class Pycharm(PrintText):
 class Browser(PrintText):
     def __init__(self):
         self.google_chrome_url_deb = 'https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb'
-    
-    def google_chrome(self):
-        self.google_chrome_repo_debian = 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main'
         
-    def debian(self):
+    def google_chrome_debian(self):
+        '''
+        Instalar Google chrome no Debian
+        '''
+        google_chrome_repo_debian = 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main'
         self.green('Adicionando key e repositório google-chrome')
         os.system("wget -q 'https://dl.google.com/linux/linux_signing_key.pub' -O- | sudo apt-key add -")
-        os.system(f'echo "{self.google_chrome_repo_debian}" | sudo tee /etc/apt/sources.list.d/google-chrome.list')
+        os.system(f'echo "{google_chrome_repo_debian}" | sudo tee /etc/apt/sources.list.d/google-chrome.list')
         AptGet().update()
         AptGet().install('google-chrome-stable')
+
+    def google_chrome_fedora(self):
+        '''
+        Instalar Google chrome no Fedora
+        '''
+        self.yellow('Executando ... dnf install fedora-workstation-repositories')
+        os.system('sudo dnf install -y fedora-workstation-repositories')
+        self.yellow('sudo dnf config-manager --set-enabled google-chrome')
+        os.system('sudo dnf config-manager --set-enabled google-chrome')
+        os.system('sudo dnf install -y google-chrome-stable')
         
-    def archlinux(self):
+    def google_chrome_archlinux(self):
+        '''
+        Instalar Google chrome no ArchLinux
+        '''
         os.chdir(DirTemp)
         os.system('git clone https://aur.archlinux.org/google-chrome.git')
         Pacman().install('base-devel pipewire')
@@ -304,12 +318,82 @@ class Browser(PrintText):
 
         self.msg('Instalando google-chrome')
         info = ReleaseInfo().info('ID') # Detectar qual o sistema base.
-        if info == 'archh':
-            self.archlinux()
+        if info == 'arch':
+            self.google_chrome_archlinux()
+        elif info == 'debian':
+            self.google_chrome_debian()
+        elif info == 'fedora':
+            self.google_chrome_fedora()
         else:
             self.red('Instalação do google-chrome indisponível para o seu sistema')
             sleep(1)
 
+    def opera_stable_archlinux(self):
+        pass
+
+    def opera_stable_debian(self):
+        opera_repo_debian='deb [arch=amd64] https://deb.opera.com/opera-stable/ stable non-free'
+        opera_file='/etc/apt/sources.list.d/opera-stable.list'
+
+        self.yellow("Importando key")
+        os.system('wget -q http://deb.opera.com/archive.key -O- | sudo apt-key add -')
+        self.yellow("Adicionando repositório")
+        os.system(f'echo "{opera_repo_debian}" | sudo tee {opera_file}')
+        AptGet().update()
+        AptGet().install('opera-stable')
+
+    def opera_stable_fedora(self):
+        os.system("Executando ... sudo rpm --import https://rpm.opera.com/rpmrepo.key")
+        os.system('sudo rpm --import https://rpm.opera.com/rpmrepo.key')
+        print(f'Executando ... cd {DirTemp}')
+        os.chdir(DirTemp)
+
+        self.yellow("Adicionando repositório")
+        # Gerar arquivo/repositório
+        repos = (
+            "[opera]"
+            "name=Opera packages"
+            "type=rpm-md"
+            "baseurl=https://rpm.opera.com/rpm"
+            "gpgcheck=1"   
+            "gpgkey=https://rpm.opera.com/rpmrepo.key"
+            "enabled=1"
+            )
+
+        file = open(opera.repo, 'w')
+        for line in repos:
+            file.write(f'{line}\n')
+        file.seek(0)
+        file.close()
+        os.system('sudo mv opera.repo /etc/yum.repos.d/opera.repo')
+        os.system('sudo dnf install opera-stable')
+
+    def opera_stable(self):
+        if is_executable('opera-stable') == True:
+            self.yellow('opera-stable já está instalado...')
+            return True
+
+        self.msg('Instalando opera-stable')
+        info = ReleaseInfo().info('ID') # Detectar qual o sistema base.
+        if info == 'arch':
+            self.opera_stable_archlinux()
+        elif info == 'debian':
+            self.opera_stable_debian()
+        elif info == 'fedora':
+            self.opera_stable_fedora()
+        else:
+            self.red('Instalação de opera-stable indisponível para o seu sistema')
+            sleep(1)
+
+    def torbrowser(self):
+        '''
+        Instalar torbrowser em qualquer distribuição Linux.
+        '''
+        url_torbrowser_installer = 'https://raw.github.com/Brunopvh/torbrowser/master/tor.sh'
+        path_torbrowser_installer = f'{DirDownloads}/tor.sh'
+        run_download(url_torbrowser_installer, path_torbrowser_installer)
+        os.system(f'chmod +x {path_torbrowser_installer}')
+        os.system(f'{path_torbrowser_installer} --install')
 
 #-----------------------------------------------------------#
 # Internet

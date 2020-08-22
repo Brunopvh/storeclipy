@@ -131,6 +131,8 @@ elif args.pkg_for_install:          # Instalar um programa
     	Pycharm().install()
     elif args.pkg_for_install == 'google-chrome':
     	Browser().google_chrome()
+    elif args.pkg_for_install == 'torbrowser':
+        Browser().torbrowser()
     else:
         print(f'Programa indisponível: {args.pkg_for_install}')
 
