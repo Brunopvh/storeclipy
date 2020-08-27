@@ -36,19 +36,33 @@ except Exception as erro:
     print(erro, ' => execute: pip3 install bs4 --user')
     sys.exit()
 
-app_name = 'storeclipy'
+app_name = 'storecli'
 
+#==================================================#
 # Diretórios de trabalho
-DirHome = Path.home()
-DirBin = os.path.abspath(os.path.join(DirHome, '.local', 'bin'))
-DirDesktopFiles = os.path.abspath(os.path.join(DirHome, '.local', 'share', 'applications'))
-DirCache = os.path.abspath(os.path.join(DirHome, '.cache', 'storecli-ultimate'))
-DirConfig = os.path.abspath(os.path.join(DirHome, '.config', app_name))
-DirDownloads = os.path.abspath(os.path.join(DirHome, '.cache', app_name, 'downloads'))
-DirIcons = os.path.abspath(os.path.join(DirHome, '.local', 'share', 'icons'))
-#DirTemp = tempfile.mkdtemp()
-DirTemp = f'/tmp/{getuser()}_tmp'
-DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
+#==================================================#
+if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD')
+    DirHome = Path.home()
+    DirBin = os.path.abspath(os.path.join(DirHome, '.local', 'bin'))
+    DirDesktopFiles = os.path.abspath(os.path.join(DirHome, '.local', 'share', 'applications'))
+    DirCache = os.path.abspath(os.path.join(DirHome, '.cache', app_name))
+    DirConfig = os.path.abspath(os.path.join(DirHome, '.config', app_name))
+    DirDownloads = os.path.abspath(os.path.join(DirHome, '.cache', app_name, 'downloads'))
+    DirIcons = os.path.abspath(os.path.join(DirHome, '.local', 'share', 'icons'))
+    #DirTemp = tempfile.mkdtemp()
+    DirTemp = f'/tmp/{getuser()}_tmp'
+    DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
+elif platform.system() == 'Windows':
+    DirHome = Path.home()
+    DirBin = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', 'Programs'))
+    DirCache = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name))
+    DirConfig = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name))
+    DirDownloads = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name, 'downloads'))
+    
+    #DirTemp = tempfile.mkdtemp()
+    DirTemp = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name, 'temp'))
+    DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
+
 
 list_dirs = [
     DirHome,
@@ -112,12 +126,13 @@ def get_links(url):
         return links
 
 def sha256(file, sum):
-    print(f'Caulculando hash do arquivo ... {file}')
+    print(f'Gerando hash do arquivo ... {file}')
     f = open(file, 'rb')
     h = hashlib.sha256()
     h.update(f.read())
     hash_file = h.hexdigest() 
     
+    print('Comparando valores ...', end=' ')
     if (hash_file) == sum:
         print('OK')
         return True
@@ -241,28 +256,177 @@ class Veracrypt(PrintText):
 #-----------------------------------------------------------#
 # Desenvolvimento
 #-----------------------------------------------------------#
-class Pycharm(PrintText):
+class Java(PrintText):
     def __init__(self):
-        self.pycharm_dir = f'{DirBin}/pycharm-community'
-        self.pycharm_script = f'{DirBin}/pycharm'
-        self.pycharm_file_desktop = f'{DirDesktopFiles}/pycharm.desktop'
-        self.pycharm_png = f'{DirIcons}/pycharm.png'
+        self.url_java_linux = 'https://sdlc-esd.oracle.com/ESD6/JSCDL/jdk/8u261-b12/a4634525489241b9a9e1aa73d9e118e6/jre-8u261-linux-x64.tar.gz?GroupName=JSC&FilePath=/ESD6/JSCDL/jdk/8u261-b12/a4634525489241b9a9e1aa73d9e118e6/jre-8u261-linux-x64.tar.gz&BHost=javadl.sun.com&File=jre-8u261-linux-x64.tar.gz&AuthParam=1598148120_7913a8dde59167ff2af90c8fd03696f1&ext=.gz'
         
-    def linux(self):
-        pycharm_shasum_linux = '60b2eeea5237f536e5d46351fce604452ce6b16d037d2b7696ef37726e1ff78a'  
-        url_pycharm_linux = 'https://download-cf.jetbrains.com/python/pycharm-community-2020.2.tar.gz'
-        pycharmTarFile = os.path.abspath(os.path.join(DirDownloads, os.path.basename(url_pycharm_linux)))
+    def archlinux(self):
+        Pacman().install('jre11-openjdk')
 
-        run_download(url_pycharm_linux, pycharmTarFile)
-        sha256(pycharmTarFile, pycharm_shasum_linux)
-        unpack.tar(pycharmTarFile)
+    def install(self):
+        if platform.system() == 'Linux':
+            if ReleaseInfo().info('ID') == 'arch':
+                self.archlinux()
+
+class Idea(PrintText):
+    def __init__(self):
+        if platform.system() == 'Linux':
+            self.url_idea = 'https://download-cf.jetbrains.com/idea/ideaIC-2020.2.1.tar.gz'
+            self.path_idea = f'{DirDownloads}/{os.path.basename(self.url_idea)}'
+            self.shasum = 'a107f09ae789acc1324fdf8d22322ea4e4654656c742e4dee8a184e265f1b014'
+            self.idea_dir = f'{DirBin}/idea-IC'
+            self.idea_script = f'{DirBin}/ideaic'
+            self.idea_file_desktop = f'{DirDesktopFiles}/idea.desktop'
+            self.idea_png = f'{DirIcons}/idea.png'
+
+    def linux(self):
+        run_download(self.url_idea, self.path_idea)
+        if sha256(self.path_idea, self.shasum) == False:
+            return False
+
+        unpack.tar(self.path_idea)
         os.chdir(DirUnpack)
-        os.system('mv pycharm-* {}'.format(self.pycharm_dir))
-        os.chdir(self.pycharm_dir)
+        print(f'Movendo ... {self.idea_dir}')
+        os.system(f'mv idea-* {self.idea_dir}')
+        os.chdir(self.idea_dir)
+        os.system(f'cp -R ./bin/idea.png {self.idea_png}')
+
+        idea_desktop_info = [
+            "[Desktop Entry]",
+            "Name=Idea IC",
+            "Version=1.0",
+            f"Icon={self.idea_png}",
+            "Exec=idea",
+            "Terminal=false",
+            "Categories=Development;IDE;",
+            "Type=Application",
+        ]
+
+        print('Criando arquivo ".desktop"')
+        f = open(self.idea_file_desktop, 'w')
+        for line in idea_desktop_info:
+            f.write(f'{line}\n')
+
+        f.seek(0)
+        f.close()
+
+        # Criar atalho para execução na linha de comando.
+        f = open(self.idea_script, 'w')
+        f.write("#!/bin/sh\n")
+        f.write(f"\ncd {self.idea_dir}/bin/ \n")
+        f.write("./idea.sh $@")
+        f.seek(0)
+        f.close()
+
+        os.system(f"chmod +x {self.idea_script}")
+
+    def remove(self):
+        print('Desisntalando "idea IC community"')
+        if platform.system() == 'Linux':
+            if os.path.exists(self.idea_dir):
+                self.red(f'Removendo ... {self.idea_dir}')
+                os.system(f'rm -rf {self.idea_dir}')
+
+            if os.path.exists(self.idea_script):
+                self.red(f'Removendo ... {self.idea_script}')
+                os.system(f'rm -rf {self.idea_script}')
+
+            if os.path.exists(self.idea_png):
+                self.red(f'Removendo ... {self.idea_png}')
+                os.system(f'rm -rf {self.idea_png}')
 
     def install(self):
         if platform.system() == 'Linux':
             self.linux()
+
+class Pycharm(PrintText):
+    def __init__(self):
+        if platform.system() == 'Linux':
+            self.pycharm_shasum = '60b2eeea5237f536e5d46351fce604452ce6b16d037d2b7696ef37726e1ff78a'  
+            self.pycharm_url = 'https://download-cf.jetbrains.com/python/pycharm-community-2020.2.tar.gz'
+            self.pycharm_tar_file = os.path.abspath(os.path.join(DirDownloads, os.path.basename(url_pycharm_linux)))
+            self.pycharm_dir = f'{DirBin}/pycharm-community'
+            self.pycharm_script = f'{DirBin}/pycharm'
+            self.pycharm_file_desktop = f'{DirDesktopFiles}/pycharm.desktop'
+            self.pycharm_png = f'{DirIcons}/pycharm.png'
+        elif platform.system() == 'Windows':
+            self.pycharm_shasum = '65afa1b90f3ecc45946793c4c43a47a46dff2e1da0737ce602f5ee12bd946f1e'
+            self.pycharm_url = 'https://download-cf.jetbrains.com/python/pycharm-community-2020.2.exe'
+            self.pycharm_name = os.path.basename(self.pycharm_url)
+            self.pycharm_pkg = os.path.abspath(os.path.join(DirDownloads, self.pycharm_name))
+
+    def windows(self):
+        run_download(self.pycharm_url, self.pycharm_pkg)
+        if sha256(self.pycharm_pkg, self.pycharm_shasum) != True:
+            return False
+
+        os.system(self.pycharm_pkg)
+
+    def linux(self):
+        if os.path.isdir(self.pycharm_dir) == True:
+            print(f'Remova o diretório {self.pycharm_dir} para prosseguir.')
+            return
+
+        run_download(self.pycharm_url, self.pycharm_tar_file)
+        if sha256(self.pycharm_tar_file, self.pycharm_shasum) != True:
+            return False
+
+        unpack.tar(self.pycharm_tar_file)
+        os.chdir(DirUnpack)
+        print(f'Movendo ... {self.pycharm_dir}')
+        os.system('mv pycharm-* {}'.format(self.pycharm_dir))
+        os.chdir(self.pycharm_dir)
+        os.system(f'cp -R ./bin/pycharm.png {self.pycharm_png}')
+
+        pycharm_desktop_info = [
+            "[Desktop Entry]",
+            "Name=Pycharm Community",
+            "Version=1.0",
+            f"Icon={self.pycharm_png}",
+            "Exec=pycharm",
+            "Terminal=false",
+            "Categories=Development;IDE;",
+            "Type=Application",
+        ]
+
+        print('Criando arquivo ".desktop"')
+        f = open(self.pycharm_file_desktop, 'w')
+        for line in pycharm_desktop_info:
+            f.write(f'{line}\n')
+
+        f.seek(0)
+        f.close()
+
+        # Criar atalho para execução na linha de comando.
+        f = open(self.pycharm_script, 'w')
+        f.write("#!/bin/sh\n")
+        f.write(f"\ncd {self.pycharm_dir}/bin/ \n")
+        f.write("./pycharm.sh $@")
+        f.seek(0)
+        f.close()
+
+        os.system(f"chmod +x {self.pycharm_script}")
+
+    def remove(self):
+        print('Desisntalando "pycharm community"')
+        if platform.system() == 'Linux':
+            if os.path.exists(self.pycharm_dir):
+                self.red(f'Removendo ... {self.pycharm_dir}')
+                os.system(f'rm -rf {self.pycharm_dir}')
+
+            if os.path.exists(self.pycharm_script):
+                self.red(f'Removendo ... {self.pycharm_script}')
+                os.system(f'rm -rf {self.pycharm_script}')
+
+            if os.path.exists(self.pycharm_png):
+                self.red(f'Removendo .. {self.pycharm_png}')
+                os.system(f'rm -rf {self.pycharm_png}')
+
+    def install(self):
+        if platform.system() == 'Linux':
+            self.linux()
+        elif platform.system() == 'Windows':
+            self.windows()
 
 #-----------------------------------------------------------#
 # Navegadores

@@ -7,7 +7,7 @@ import re
 import argparse
 import platform 
 
-__version__ = '2020-08-20'
+__version__ = '2020-08-26'
 
 # Endereço deste script no disco.
 dir_root = os.path.dirname(os.path.realpath(__file__)) 
@@ -63,6 +63,14 @@ parser.add_argument(
     )
 
 parser.add_argument(
+    '-r', '--remove', 
+    action='store', 
+    dest='pkg_for_remove',
+    type=str,
+    help='Desisntala um pacote'
+    )
+
+parser.add_argument(
     '-d', '--download', 
     action='store', 
     dest='pkg_for_download',
@@ -85,6 +93,9 @@ args = parser.parse_args()
 #----------------------------------------------------------#
 # Lista de aplicativos disponíveis para instalação.
 apps_list = (
+    'pycharm'
+    'google-chrome'
+    'opera-stable'
     'veracrypt',
     'youtube-dl-gui',
 )
@@ -127,6 +138,10 @@ elif args.pkg_for_install:          # Instalar um programa
         YoutubeDlg().install()
     elif args.pkg_for_install == 'veracrypt':
         Veracrypt().install()
+    elif args.pkg_for_install == 'java':
+        Java().install()
+    elif args.pkg_for_install == 'idea':
+        Idea().install()
     elif args.pkg_for_install == 'pycharm':
     	Pycharm().install()
     elif args.pkg_for_install == 'google-chrome':
@@ -136,3 +151,8 @@ elif args.pkg_for_install:          # Instalar um programa
     else:
         print(f'Programa indisponível: {args.pkg_for_install}')
 
+elif args.pkg_for_remove:          # Desinstalar um programa
+    if args.pkg_for_remove == 'pycharm':
+        Pycharm().remove()
+    else:
+        print(f'[!] Não foi possivel remover {args.pkg_for_remove}')

@@ -29,7 +29,8 @@ class UnpackFiles:
 			if (os.path.isdir(DIR) == True) or (os.path.isfile(DIR) == True):
 				print(f'Limpando: {DIR}')
 				try:
-					shutil.rmtree(DIR)
+					#shutil.rmtree(DIR)
+					os.system(f'rm -rf {DIR}')
 				except:
 					print(f'Autenticação nescessária para remover ... {DIR}')
 					os.system(f'sudo rm -rf {DIR}')
