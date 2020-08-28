@@ -7,7 +7,7 @@ import re
 import argparse
 import platform 
 
-__version__ = '2020-08-26'
+__version__ = '2020-08-27'
 
 # Endereço deste script no disco.
 dir_root = os.path.dirname(os.path.realpath(__file__)) 
@@ -93,10 +93,10 @@ args = parser.parse_args()
 #----------------------------------------------------------#
 # Lista de aplicativos disponíveis para instalação.
 apps_list = (
-    'pycharm'
-    'google-chrome'
-    'opera-stable'
     'veracrypt',
+    'pycharm',
+    'google-chrome',
+    'opera-stable', 
     'youtube-dl-gui',
 )
 
@@ -148,11 +148,15 @@ elif args.pkg_for_install:          # Instalar um programa
     	Browser().google_chrome()
     elif args.pkg_for_install == 'torbrowser':
         Browser().torbrowser()
+    elif args.pkg_for_install == 'papirus':
+        Papirus().install()
     else:
         print(f'Programa indisponível: {args.pkg_for_install}')
 
 elif args.pkg_for_remove:          # Desinstalar um programa
     if args.pkg_for_remove == 'pycharm':
         Pycharm().remove()
+    elif args.pkg_for_remove == 'idea':
+        Idea().remove()
     else:
         print(f'[!] Não foi possivel remover {args.pkg_for_remove}')

@@ -77,7 +77,6 @@ elif platform.system() == 'Windows':
     DirTemp = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name, 'temp'))
     DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
 
-
     list_dirs = [
         DirHome,
         DirBin,
@@ -284,20 +283,22 @@ class Java(PrintText):
 class Idea(PrintText):
     def __init__(self):
         if platform.system() == 'Linux':
-            self.url_idea = 'https://download-cf.jetbrains.com/idea/ideaIC-2020.2.1.tar.gz'
-            self.path_idea = f'{DirDownloads}/{os.path.basename(self.url_idea)}'
+            self.idea_url = 'https://download-cf.jetbrains.com/idea/ideaIC-2020.2.1.tar.gz'
+            self.idea_tar_file = os.path.abspath(os.path.join(DirDownloads, os.path.basename(self.idea_url)))
             self.shasum = 'a107f09ae789acc1324fdf8d22322ea4e4654656c742e4dee8a184e265f1b014'
-            self.idea_dir = f'{DirBin}/idea-IC'
-            self.idea_script = f'{DirBin}/ideaic'
-            self.idea_file_desktop = f'{DirDesktopFiles}/idea.desktop'
-            self.idea_png = f'{DirIcons}/idea.png'
+            self.idea_dir = os.path.abspath(os.path.join(DirBin, 'idea-IC'))
+            self.idea_script = os.path.abspath(os.path.join(DirBin, 'idea'))
+            self.idea_file_desktop = os.path.abspath(os.path.join(DirDesktopFiles, 'idea.desktop')) 
+            self.idea_png = os.path.abspath(os.path.join(DirIcons, 'idea.png'))
+        elif platform.system() == 'Windows':
+            pass
 
     def linux(self):
-        run_download(self.url_idea, self.path_idea)
-        if sha256(self.path_idea, self.shasum) == False:
+        run_download(self.idea_url, self.idea_tar_file)
+        if sha256(self.idea_tar_file, self.shasum) == False:
             return False
 
-        unpack.tar(self.path_idea)
+        unpack.tar(self.idea_tar_file)
         os.chdir(DirUnpack)
         print(f'Movendo ... {self.idea_dir}')
         os.system(f'mv idea-* {self.idea_dir}')
@@ -357,11 +358,11 @@ class Pycharm(PrintText):
         if platform.system() == 'Linux':
             self.pycharm_shasum = '60b2eeea5237f536e5d46351fce604452ce6b16d037d2b7696ef37726e1ff78a'  
             self.pycharm_url = 'https://download-cf.jetbrains.com/python/pycharm-community-2020.2.tar.gz'
-            self.pycharm_tar_file = os.path.abspath(os.path.join(DirDownloads, os.path.basename(url_pycharm_linux)))
-            self.pycharm_dir = f'{DirBin}/pycharm-community'
-            self.pycharm_script = f'{DirBin}/pycharm'
-            self.pycharm_file_desktop = f'{DirDesktopFiles}/pycharm.desktop'
-            self.pycharm_png = f'{DirIcons}/pycharm.png'
+            self.pycharm_tar_file = os.path.abspath(os.path.join(DirDownloads, os.path.basename(self.pycharm_url)))
+            self.pycharm_dir = os.path.abspath(os.path.join(DirBin, 'pycharm-community'))
+            self.pycharm_script = os.path.abspath(os.path.join(DirBin, 'pycharm'))
+            self.pycharm_file_desktop = os.path.abspath(os.path.join(DirDesktopFiles, 'pycharm.desktop')) 
+            self.pycharm_png = os.path.abspath(os.path.join(DirIcons, 'pycharm.png'))
         elif platform.system() == 'Windows':
             self.pycharm_shasum = '65afa1b90f3ecc45946793c4c43a47a46dff2e1da0737ce602f5ee12bd946f1e'
             self.pycharm_url = 'https://download-cf.jetbrains.com/python/pycharm-community-2020.2.exe'
@@ -376,8 +377,8 @@ class Pycharm(PrintText):
         os.system(self.pycharm_pkg)
 
     def linux(self):
-        if os.path.isdir(self.pycharm_dir) == True:
-            print(f'Remova o diretório {self.pycharm_dir} para prosseguir.')
+        if is_executable('pycharm'):
+            print('Pycharm já instalado use "--remove pycharm" para desinstalar.')
             return
 
         run_download(self.pycharm_url, self.pycharm_tar_file)
@@ -566,11 +567,15 @@ class Browser(PrintText):
         '''
         Instalar torbrowser em qualquer distribuição Linux.
         '''
-        url_torbrowser_installer = 'https://raw.github.com/Brunopvh/torbrowser/master/tor.sh'
-        path_torbrowser_installer = f'{DirDownloads}/tor.sh'
-        run_download(url_torbrowser_installer, path_torbrowser_installer)
-        os.system(f'chmod +x {path_torbrowser_installer}')
-        os.system(f'{path_torbrowser_installer} --install')
+        if platform.system() == 'Linux':
+            url_torbrowser_installer = 'https://raw.github.com/Brunopvh/torbrowser/master/tor.sh'
+            path_torbrowser_installer = os.path.abspath(os.path.join(DirDownloads, 'tor.sh'))
+            run_download(url_torbrowser_installer, path_torbrowser_installer)
+            os.system(f'chmod +x {path_torbrowser_installer}')
+            os.system(f'{path_torbrowser_installer} --install')
+        else:
+            print('[!] Instalação do "Navegador tor não está disponível para o seu sistema."')
+            return False
 
 #-----------------------------------------------------------#
 # Internet
@@ -682,6 +687,18 @@ class YoutubeDlg(PrintText):
             if ReleaseInfo().info('ID') == 'arch':
                 self.archlinux()
         
+#-----------------------------------------------------------#
+# Preferências
+#-----------------------------------------------------------#
+class Papirus(PrintText):
+    def __init__(self):
+        self.papirus_url = 'https://github.com/PapirusDevelopmentTeam/papirus-icon-theme/archive/master.tar.gz'
+        self.papirus_tar_file = os.path.abspath(os.path.join(DirDownloads, 'papirus.tar.gz'))
 
-    
+    def papirus_tar(self):
+        wget_download(self.papirus_url, self.papirus_tar_file)
+
+    def install(self):
+        if platform.system() == 'Linux':
+            self.papirus_tar()
     
