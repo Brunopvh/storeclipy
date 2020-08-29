@@ -2,43 +2,16 @@
 # -*- coding: utf-8 -*-
 import sys, os
 import urllib.request
+import subprocess
 
-
-try:
-    from tqdm import tqdm
-except:
-    print('Instale o módulo tqdm: pip3 install tqdm --user')
-    sys.exit()
-
-
-try:
-    import wget
-except:
-    print('Instale o módulo wget: pip3 install wget --user')
-    sys.exit()
-
-class DownloadProgressBar(tqdm):
-    def update_to(self, b=1, bsize=1, tsize=None):
-        if tsize is not None:
-            self.total = tsize
-        self.update(b * bsize - self.n)
-
-
-def run_download(url, output_path):
-    if os.path.isfile(output_path) == True:
-        print(f'Arquivo encontrado ... {output_path}')
-        return
-	
-	
-    with DownloadProgressBar(
-    						unit='B', 
-    						unit_scale=True,
-							miniters=1, 
-							desc=url.split('/')[-1]
-							) as t:
-        urllib.request.urlretrieve(url, filename=output_path, reporthook=t.update_to)
+def is_executable(exec):
+    if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
+        return True
+    else:
+        return False
         
 def wget_download(url, output_path):
+    import wget
     if os.path.isfile(output_path) == True:
         print(f'Arquivo encontrado ... {output_path}')
         return
@@ -65,6 +38,28 @@ def wget_download(url, output_path):
         print(erro)
     else:
         print(' OK')
+        
+        
+def run_download(url, output_path):
+    
+    if os.path.isfile(output_path) == True:
+        print(f'Arquivo encontrado ... {output_path}')
+        return
+    
+    if is_executable('curl') == True:
+        os.system(f'curl -S -L -o {output_path} {url}')
+    elif is_executable('wget') == True:
+        os.system(f'wget {url} -O {output_path}')
+    else:
+        
+        try:
+            import wget
+        except:
+            print()
+            print('Instale o módulo wget: pip3 install wget --user')
+            sys.exit()
+        else:
+            wget_download(url, output_path)
 
 
 

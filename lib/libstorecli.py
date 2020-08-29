@@ -114,8 +114,12 @@ app_name = 'storecli'
 #==================================================#
 # Diretórios de trabalho
 #==================================================#
-if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
+if platform.system() == 'FreeBSD':
+    DirHome = os.path.abspath(os.path.join('/usr', Path.home()))
+else:
     DirHome = Path.home()
+
+if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
     DirBin = os.path.abspath(os.path.join(DirHome, '.local', 'bin'))
     DirDesktopFiles = os.path.abspath(os.path.join(DirHome, '.local', 'share', 'applications'))
     DirCache = os.path.abspath(os.path.join(DirHome, '.cache', app_name))
@@ -138,12 +142,10 @@ if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
     ]
 
 elif platform.system() == 'Windows':
-    DirHome = Path.home()
     DirBin = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', 'Programs'))
     DirCache = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name))
     DirConfig = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name))
     DirDownloads = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name, 'downloads'))
-    
     #DirTemp = tempfile.mkdtemp()
     DirTemp = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name, 'temp'))
     DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
@@ -245,36 +247,35 @@ class UnpackFiles:
             os.makedirs(self.destination)
 
         if os.access(self.destination, os.W_OK) == True:
-            return 'True'
+            return True
         else:
             print(f'[!] Falha você não tem permissão de escrita em: {self.destination}')
-            return 'False'
+            return False
 
     def clear_dir(self):
-        os.chdir(self.destination)
-        dirs = os.listdir(self.destination)
-        for DIR in dirs:
-            if (os.path.exists(DIR) == True):
-                print(f'Limpando: {DIR}')
-                try:
-                    #shutil.rmtree(DIR)
-                    os.system(f'rm -rf {DIR}')
-                except:
-                    print(f'Autenticação nescessária para remover ... {DIR}')
-                    os.system(f'sudo rm -rf {DIR}')
+        if self.check_destination() != True:
+            return
+        
+        print(f'Limpando ... {self.destination}')
+        try:
+            #shutil.rmtree(DIR)
+            os.system(f'rm -rf {self.destination}')
+        except:
+            print(f'Autenticação nescessária para remover ... {DIR}')
+            os.system(f'sudo rm -rf {self.destination}')
+            
+        mkdir(self.destination)
 
     def tar(self, file):
         # https://docs.python.org/3.3/library/tarfile.html
 
+        '''
         # Verificar se o arquivo e do tipo tar
         if not tarfile.is_tarfile(file):
             print(f'O arquivo NÃO é do tipo {s.red}.tar{s.reset}: {file}')
             return
-
-        if self.check_destination() == 'False':
-            print('Saindo')
-            return
-
+        '''
+            
         self.clear_dir()
         print(f'Descomprimindo: {file}', end= ' ')
         os.chdir(self.destination)
@@ -346,8 +347,8 @@ class Veracrypt(PrintText):
         path_veracrypt_tarfile = '{}/{}'.format(DirDownloads, os.path.basename(url_veracrypt_linux))
         path_veracrypt_tarfile_sig = f'{path_veracrypt_tarfile}.sig'
         
-        wget_download(url_veracrypt_linux, path_veracrypt_tarfile)
-        wget_download(url_veracrypt_linux_sig, path_veracrypt_tarfile_sig)
+        run_download(url_veracrypt_linux, path_veracrypt_tarfile)
+        run_download(url_veracrypt_linux_sig, path_veracrypt_tarfile_sig)
 
         self.yellow('Importando key veracrypt')
         os.system('curl -s https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc | gpg --import - 1> /dev/null 2>&1')
@@ -387,8 +388,8 @@ class Veracrypt(PrintText):
         path_veracrypt_tarfile = '{}/{}'.format(DirDownloads, os.path.basename(url_veracrypt_freebsd))
         path_veracrypt_tarfile_sig = f'{path_veracrypt_tarfile}.sig'
         
-        wget_download(url_veracrypt_freebsd, path_veracrypt_tarfile)
-        wget_download(url_veracrypt_freebsd_sig, path_veracrypt_tarfile_sig)
+        run_download(url_veracrypt_freebsd, path_veracrypt_tarfile)
+        run_download(url_veracrypt_freebsd_sig, path_veracrypt_tarfile_sig)
 
         self.yellow('Importando key veracrypt')
         os.system('curl -s https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc | gpg --import - 1> /dev/null 2>&1')
@@ -749,7 +750,7 @@ class YoutubeDlg(PrintText):
             self.exec_ytdl = f'{DirBin}/youtube-dl-gui' 
             
     def get_ytdlg(self):
-        wget_download(self.URL, self.path_file_zip)
+        run_download(self.URL, self.path_file_zip)
         unpack.zip(self.path_file_zip)
         
     def twodict(self):
@@ -775,7 +776,7 @@ class YoutubeDlg(PrintText):
             sys.exit('1')
             
     def compile_ytdlg(self):
-        wget_download(self.URL, self.path_file_zip)
+        run_download(self.URL, self.path_file_zip)
         unpack.zip(self.path_file_zip)
         
         self.yellow('Compilando youtube-dl-gui')
@@ -824,7 +825,7 @@ class YoutubeDlg(PrintText):
     
     def freebsd(self):    
         self.twodict() # Instalar o python twodict.
-        Pkg().install(['py27-wxPython30']) # Instalar dependências
+        Pkg().install('py27-wxPython30') # Instalar dependências
         self.compile_ytdlg() # compilar.
         self.file_desktop_root()
     
@@ -857,10 +858,9 @@ class Papirus(PrintText):
         self.dir_papirus_light = os.path.abspath(os.path.join(DirIcons, 'Papirus-Light'))
         self.dir_epapirus = os.path.abspath(os.path.join(DirIcons, 'ePapirus'))
 
-
     def papirus_tar(self):
         self.msg('Instalando papirus')
-        wget_download(self.papirus_url, self.papirus_tar_file)
+        run_download(self.papirus_url, self.papirus_tar_file)
         unpack.tar(self.papirus_tar_file)
         os.chdir(DirUnpack)
         os.system('mv papirus-* papirus')
@@ -901,5 +901,6 @@ class Papirus(PrintText):
             else:
                 self.papirus_tar()
         elif platform.system() == 'FreeBSD':
+            #self.papirus_tar()
             Pkg().install('papirus-icon-theme')
     

@@ -7,7 +7,7 @@ import re
 import argparse
 import platform 
 
-__version__ = '2020-08-27'
+__version__ = '2020-08-28'
 
 # Endereço deste script no disco.
 dir_root = os.path.dirname(os.path.realpath(__file__)) 
@@ -98,6 +98,7 @@ apps_list = (
     'google-chrome',
     'opera-stable', 
     'youtube-dl-gui',
+    'papirus',
 )
 
 if args.list_all_apps:
