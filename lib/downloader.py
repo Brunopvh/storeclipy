@@ -2,64 +2,91 @@
 # -*- coding: utf-8 -*-
 import sys, os
 import urllib.request
-import subprocess
 
-def is_executable(exec):
-    if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
-        return True
-    else:
-        return False
-        
-def wget_download(url, output_path):
+
+try:
     import wget
-    if os.path.isfile(output_path) == True:
-        print(f'Arquivo encontrado ... {output_path}')
-        return
-    
-    print(f'Conectando ... {url}')
-    info = urllib.request.urlopen(url)
-    try:
-        length = int(info.getheader('content-length'))
-    except:
-        pass
-    else:
-        if length and (length != None):
-            if length >= (1024 * 1024):
-                lengthMB = float(length / int(1024 * 1024))
-                print('Total ... {:.2f}MB'.format(lengthMB))
-            else:
-                print('Total ... {} Kb'.format(length))
+except Exception as err:
+    print(err)
+    print('Instale o módulo wget: pip3 install wget --user')
+    sys.exit()
 
-    print(f'Baixando ... {output_path}')
-    try:
-        wget.download(url, output_path)
-    except Exception as erro:
-        print(' ')
-        print(erro)
-    else:
-        print(' OK')
+
+class Downloader:
+    def __init__(self, url, output_path):
+        self.url = url
+        self.output_path = output_path
+        self.terminal_widh = os.get_terminal_size()[0]
+
+    def bar_custom(self, current, total, width=80):
+        # print('\033[K[>] Progresso: %d%% [%d / %d]MB ' % (progress, current, total), end='\r')
+        if current > 1048576: # Converter bytes para MB
+            current = current / 1048576
+            total = total / 1048576
+            und = 'MB'
+        else:
+            und = 'K'
+
+        progress = (current / total) * 100 # Percentual
+        if (current) and (progress > 0):
+            current = '{:.2f}'.format(current)
+            total = '{:.2f}'.format(total)
+            progress = int(progress)
+            show_progress_msg = f'{progress}% {current}/{total}{und}'
+           
+            num_space_widh = int(self.terminal_widh - len(show_progress_msg) - 9) # Espaço livre disponível. 
+            num_space_line = int(num_space_widh // 100) # Dividir o espaço livre em 100 partes inteiras iguais.
+            progress_line = (num_space_line * progress)
+            null_line = (num_space_widh - progress_line)
+            show_line = f'{("=" * progress_line)}{("-" * null_line)}'
+            if progress == 100:
+                print(f'{progress}% [{show_line}] ({current}/{total}){und} OK')
+            else:
+                print(f'\033[K{progress}% [{show_line}] ({current}/{total}){und}', end='\r')
+        else:
+            print(f'\033[KAguarde...', end='\r')
+
+    def bar_custom_old(self, current, total, width=80):
+        # print('\033[K[>] Progresso: %d%% [%d / %d]MB ' % (progress, current, total), end='\r')
         
+        if current > 1048576: # Converter bytes para MB
+            current = current / 1048576
+            total = total / 1048576
+
+        progress = (current / total) * 100 # Percentual
         
+        current = '{:.2f}'.format(current)
+        total = '{:.2f}'.format(total)
+        progress = '{:.1f}'.format(progress)
+        
+        print(f'\033[KProgresso ... [{progress}%] [{current}/{total}]MB', end='\r')
+
+    def wget_download(self):
+        '''
+        wget.download(url, out=None, bar=<function bar_adaptive at 0x7f7fdfed9d30>)
+        wget.download(url, out=None, bar=bar_adaptive(current, total, width=80))
+        '''
+        if os.path.isfile(self.output_path):
+            print(f'Arquivo encontrado ... {self.output_path}')
+            return True
+
+        print(f'Conectando ... {self.url}')
+        print(f'Destino ... {self.output_path}')
+        wget.download(self.url, self.output_path, bar=self.bar_custom)
+        print('')
+
+  
+# info = urllib.request.urlopen(url)
+# length = int(info.getheader('content-length'))
+# if length and (length != None):
+           
 def run_download(url, output_path):
     
     if os.path.isfile(output_path) == True:
         print(f'Arquivo encontrado ... {output_path}')
         return
     
-    if is_executable('curl') == True:
-        os.system(f'curl -S -L -o {output_path} {url}')
-    elif is_executable('wget') == True:
-        os.system(f'wget {url} -O {output_path}')
-    else:
-        
-        try:
-            import wget
-        except:
-            print()
-            print('Instale o módulo wget: pip3 install wget --user')
-            sys.exit()
-        else:
-            wget_download(url, output_path)
+    Downloader(url, output_path).wget_download()
 
 
 

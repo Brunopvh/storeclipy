@@ -238,6 +238,84 @@ def check_gpg(sig_file, file):
 #-----------------------------------------------------------#
 # Descompressão de arquivos.
 #-----------------------------------------------------------#
+def unpack_tar(tar_file, output_dir=DirUnpack):
+        # https://docs.python.org/3.3/library/tarfile.html
+
+        '''
+        # Verificar se o arquivo e do tipo tar
+        if not tarfile.is_tarfile(file):
+            print(f'O arquivo NÃO é do tipo {s.red}.tar{s.reset}: {file}')
+            return
+        '''
+        try: 
+            os.chdir(output_dir)
+        except:
+            pass
+        else:
+            try:
+                shutil.rmtree(output_dir)
+            except:
+                print(f'Autênticação nescessária para remover ... {output_dir}')
+                os.system(f'sudo rm -rf {output_dir}')
+
+        if os.path.isdir(output_dir) == False:
+            mkdir(output_dir)
+
+        print(f'Descomprimindo: {tar_file}', end= ' ')
+        os.chdir(output_dir)
+        try:
+            tar = tarfile.open(tar_file)
+            tar.extractall()
+            tar.close()
+        except(KeyboardInterrupt):
+            print('Cancelado com Ctrl c')
+            sys.exit()
+        except Exception as err:
+            print()
+            print(f'Falha na descompressão do  arquivo ... {tar_file}\n', err)
+            sys.exit('1')
+        else:
+            print('OK')
+
+def unpack_zip(zip_file, output_dir=DirUnpack):
+        # https://docs.python.org/pt-br/3/library/zipfile.html
+        # https://www.geeksforgeeks.org/working-zip-files-python/
+        try: 
+            os.chdir(output_dir)
+        except:
+            pass
+        else:
+            try:
+                shutil.rmtree(output_dir)
+            except:
+                print(f'Autênticação nescessária para remover ... {output_dir}')
+                os.system(f'sudo rm -rf {output_dir}')
+
+        if os.path.isdir(output_dir) == False:
+            mkdir(output_dir)
+
+        # Verificar se o arquivo e do tipo zip
+        if not is_zipfile(file):
+            print(f'O arquivo NÃO é do tipo (.zip) ... {zip_file}')
+            return
+
+        print(f'Descomprimindo: {zip_file}', end= ' ')
+        os.chdir(zip_file)
+
+        try:
+            with ZipFile(zip_file, 'r') as zip: 
+                # printing all the contents of the zip file 
+                # zip.printdir()  
+                zip.extractall()
+        except:
+            print()
+            print(f'Falha na descompressão de ... {zip_file}')
+            sys.exit('1')
+        else:
+            print('OK')
+    
+
+
 class UnpackFiles:
     def __init__(self, destination=os.getcwd()):
         self.destination = destination
@@ -284,9 +362,12 @@ class UnpackFiles:
             tar.extractall()
             tar.close()
             print('OK')
-        except:
+        except(KeyboardInterrupt):
+            print('Cancelado com Ctrl c')
+            sys.exit()
+        except Exception as err:
             print()
-            print(f'Falha na descompressão de: {file}')
+            print(f'Falha na descompressão de: {file}\n', err)
             sys.exit('1')
 
     def zip(self, file):
@@ -358,7 +439,7 @@ class Veracrypt(PrintText):
             self.red(f'Arquivo não confiavel: {path_veracrypt_tarfile}')
             return False
         
-        unpack.tar(path_veracrypt_tarfile)
+        unpack_tar(path_veracrypt_tarfile)
         os.chdir(DirUnpack)
         files_in_dir = os.listdir(DirUnpack)
         for file in files_in_dir:
@@ -447,7 +528,7 @@ class Idea(PrintText):
             self.shasum = 'a107f09ae789acc1324fdf8d22322ea4e4654656c742e4dee8a184e265f1b014'
             self.idea_dir = os.path.abspath(os.path.join(DirBin, 'idea-IC'))
             self.idea_script = os.path.abspath(os.path.join(DirBin, 'idea'))
-            self.idea_file_desktop = os.path.abspath(os.path.join(DirDesktopFiles, 'idea.desktop')) 
+            self.idea_file_desktop = os.path.abspath(os.path.join(DirDesktopFiles, 'jetbrains-idea.desktop')) 
             self.idea_png = os.path.abspath(os.path.join(DirIcons, 'idea.png'))
         elif platform.system() == 'Windows':
             pass
@@ -457,21 +538,22 @@ class Idea(PrintText):
         if sha256(self.idea_tar_file, self.shasum) == False:
             return False
 
-        unpack.tar(self.idea_tar_file)
+        unpack_tar(self.idea_tar_file)
         os.chdir(DirUnpack)
         print(f'Movendo ... {self.idea_dir}')
         os.system(f'mv idea-* {self.idea_dir}')
         os.chdir(self.idea_dir)
-        os.system(f'cp -R ./bin/idea.png {self.idea_png}')
-
+        os.system(f'cp ./bin/idea.png {self.idea_png}')
+        
         idea_desktop_info = [
             "[Desktop Entry]",
-            "Name=Idea IC",
+            "Name=IntelliJ IDEA Ultimate Edition",
             "Version=1.0",
+            "Comment=java"
             f"Icon={self.idea_png}",
-            "Exec=idea",
+            f"Exec='{self.idea_dir}/bin/idea.sh' %f",
             "Terminal=false",
-            "Categories=Development;IDE;",
+            "Categories=Development;IDE",
             "Type=Application",
         ]
 
@@ -482,7 +564,7 @@ class Idea(PrintText):
 
         f.seek(0)
         f.close()
-
+        
         # Criar atalho para execução na linha de comando.
         f = open(self.idea_script, 'w')
         f.write("#!/bin/sh\n")
@@ -492,7 +574,7 @@ class Idea(PrintText):
         f.close()
 
         os.system(f"chmod +x {self.idea_script}")
-
+        
     def remove(self):
         print('Desisntalando "idea IC community"')
         if platform.system() == 'Linux':
@@ -897,7 +979,8 @@ class Papirus(PrintText):
     def install(self):
         if platform.system() == 'Linux': # Instalação em sistemas Linux
             if ReleaseInfo().info('ID') == 'arch':
-                Pacman().install('papirus-icon-theme')
+                #Pacman().install('papirus-icon-theme')
+                self.papirus_tar()
             else:
                 self.papirus_tar()
         elif platform.system() == 'FreeBSD':
