@@ -859,6 +859,7 @@ class Papirus(PrintText):
 
 
     def papirus_tar(self):
+        self.msg('Instalando papirus')
         wget_download(self.papirus_url, self.papirus_tar_file)
         unpack.tar(self.papirus_tar_file)
         os.chdir(DirUnpack)
@@ -894,7 +895,11 @@ class Papirus(PrintText):
         os.system(f'cp -R Papirus-Dark {self.dir_epapirus}')
 
     def install(self):
-        self.msg('Instalando papirus')
-        if platform.system() == 'Linux':
-            self.papirus_tar()
+        if platform.system() == 'Linux': # Instalação em sistemas Linux
+            if ReleaseInfo().info('ID') == 'arch':
+                Pacman().install('papirus-icon-theme')
+            else:
+                self.papirus_tar()
+        elif platform.system() == 'FreeBSD':
+            Pkg().install('papirus-icon-theme')
     
