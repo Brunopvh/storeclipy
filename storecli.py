@@ -130,26 +130,26 @@ elif args.pkg_for_install:          # Instalar um programa
         RunInstaller().wifiphisher()
     elif args.pkg_for_install == 'fluxion':
         RunInstaller().fluxion()
+    elif args.pkg_for_install == 'google-chrome':
+        Browser().google_chrome()
+    elif args.pkg_for_install == 'java':
+        Java().install()
+    elif args.pkg_for_install == 'idea':
+        Idea().install()
+    elif args.pkg_for_install == 'pycharm':
+        Pycharm().install()
+    elif args.pkg_for_install == 'papirus':
+        Papirus().install()
     elif args.pkg_for_install == 'searx':
         RunInstaller().searx()
+    elif args.pkg_for_install == 'torbrowser':
+        Browser().torbrowser()
     elif args.pkg_for_install == 'theharvester':
         RunInstaller().theHarvester()
     elif args.pkg_for_install == 'youtube-dl-gui':
         YoutubeDlg().install()
     elif args.pkg_for_install == 'veracrypt':
         Veracrypt().install()
-    elif args.pkg_for_install == 'java':
-        Java().install()
-    elif args.pkg_for_install == 'idea':
-        Idea().install()
-    elif args.pkg_for_install == 'pycharm':
-    	Pycharm().install()
-    elif args.pkg_for_install == 'google-chrome':
-    	Browser().google_chrome()
-    elif args.pkg_for_install == 'torbrowser':
-        Browser().torbrowser()
-    elif args.pkg_for_install == 'papirus':
-        Papirus().install()
     else:
         print(f'Programa indisponível: {args.pkg_for_install}')
 

@@ -21,9 +21,9 @@ from pathlib import Path
 from getpass import getuser
 from zipfile import ZipFile, is_zipfile
 from time import sleep
+from zipfile import ZipFile, is_zipfile
 
 from lib.print_text import PrintText
-from lib.unpack_files import UnpackFiles
 from lib.downloader import *
 
 if platform.system() != 'Windows':
@@ -37,6 +37,77 @@ try:
 except Exception as erro:
     print(erro, ' => execute: pip3 install bs4 --user')
     sys.exit()
+
+
+
+columns = os.get_terminal_size()[0]
+space_line = ('-' * columns)
+
+# Default
+CRed = '\033[0;31m'
+CGreen = '\033[0;32m'
+CYellow = '\033[0;33m'
+CBlue = '\033[0;34m'
+CWhite = '\033[0;37m'
+
+# Strong
+CSRed = '\033[1;31m'
+CSGreen = '\033[1;32m'
+CSYellow = '\033[1;33m'
+CSBlue = '\033[1;34m'
+CSWhite = '\033[1;37m'
+
+# Dark
+CDRed = '\033[2;31m'
+CDGreen = '\033[2;32m'
+CDYellow = '\033[2;33m'
+CDBlue = '\033[2;34m'
+CDWhite = '\033[2;37m'
+
+# Blinking text
+CBRed = '\033[5;31m'
+CBGreen = '\033[5;32m'
+CBYellow = '\033[5;33m'
+CBBlue = '\033[5;34m'
+CBWhite = '\033[5;37m'
+
+# Reset
+CReset = '\033[0m'
+
+class PrintText:
+    '''
+    Use: class(PrintText)
+         self.red("text") - self.yellow("text") ...
+    '''
+    def __init__(self):
+        pass
+
+    def red(self, text=''):
+        print(f'{CRed}[!] {text}{CReset}')
+
+    def green(self, text=''):
+        print(f'{CGreen}{text}{CReset}')
+
+    def yellow(self, text=''):
+        print(f'{CYellow}{text}{CReset}')
+
+    def blue(self, text=''):
+        print(f'{CBlue}{text}{CReset}')
+
+    def white(self, text=''):
+        print(f'{CWhite}{text}{CReset}') 
+        
+    def msg(self, text=''):
+        self.line()
+        print(text.center(columns))
+        self.line()
+    
+    def line(self, char=None):
+        if char == None:
+            print('-' * columns)
+        else:
+            print(char * columns)
+
 
 app_name = 'storecli'
 
@@ -52,7 +123,7 @@ if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
     DirDownloads = os.path.abspath(os.path.join(DirHome, '.cache', app_name, 'downloads'))
     DirIcons = os.path.abspath(os.path.join(DirHome, '.local', 'share', 'icons'))
     #DirTemp = tempfile.mkdtemp()
-    DirTemp = f'/tmp/{getuser()}_tmp'
+    DirTemp = os.path.abspath(os.path.join('/tmp', app_name, getuser())) #f'/tmp/{getuser()}_tmp'
     DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
 
     list_dirs = [
@@ -103,8 +174,6 @@ def mkdir(path):
 
 for DIR in list_dirs:
     mkdir(DIR)
-
-unpack = UnpackFiles(DirUnpack)
 
 def is_executable(exec):
     if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
@@ -162,7 +231,96 @@ def check_gpg(sig_file, file):
         print('')
         PrintText().red(out[1])
         return False
+
+
+#-----------------------------------------------------------#
+# Descompressão de arquivos.
+#-----------------------------------------------------------#
+class UnpackFiles:
+    def __init__(self, destination=os.getcwd()):
+        self.destination = destination
+
+    def check_destination(self):
+        if os.path.isdir(self.destination) == False:
+            os.makedirs(self.destination)
+
+        if os.access(self.destination, os.W_OK) == True:
+            return 'True'
+        else:
+            print(f'[!] Falha você não tem permissão de escrita em: {self.destination}')
+            return 'False'
+
+    def clear_dir(self):
+        os.chdir(self.destination)
+        dirs = os.listdir(self.destination)
+        for DIR in dirs:
+            if (os.path.exists(DIR) == True):
+                print(f'Limpando: {DIR}')
+                try:
+                    #shutil.rmtree(DIR)
+                    os.system(f'rm -rf {DIR}')
+                except:
+                    print(f'Autenticação nescessária para remover ... {DIR}')
+                    os.system(f'sudo rm -rf {DIR}')
+
+    def tar(self, file):
+        # https://docs.python.org/3.3/library/tarfile.html
+
+        # Verificar se o arquivo e do tipo tar
+        if not tarfile.is_tarfile(file):
+            print(f'O arquivo NÃO é do tipo {s.red}.tar{s.reset}: {file}')
+            return
+
+        if self.check_destination() == 'False':
+            print('Saindo')
+            return
+
+        self.clear_dir()
+        print(f'Descomprimindo: {file}', end= ' ')
+        os.chdir(self.destination)
+        try:
+            tar = tarfile.open(file)
+            tar.extractall()
+            tar.close()
+            print('OK')
+        except:
+            print()
+            print(f'Falha na descompressão de: {file}')
+            sys.exit('1')
+
+    def zip(self, file):
+        # https://docs.python.org/pt-br/3/library/zipfile.html
+        # https://www.geeksforgeeks.org/working-zip-files-python/
+
+        # Verificar se o arquivo e do tipo zip
+        if not is_zipfile(file):
+            print(f'O arquivo NÃO é do tipo (.zip) ... {file}')
+            return
+
+        if self.check_destination() == 'False':
+            print('Saindo')
+            return
+
+        self.clear_dir()
+        print(f'Descomprimindo: {file}', end= ' ')
+        os.chdir(self.destination)
+
+        try:
+            with ZipFile(file, 'r') as zip: 
+                # printing all the contents of the zip file 
+                # zip.printdir()  
+                zip.extractall()
+            print('OK')
+        except:
+            print()
+            print(f'Falha na descompressão de: {file}')
+            sys.exit('1')
     
+unpack = UnpackFiles(DirUnpack)
+
+#-----------------------------------------------------------#
+# Acessórios
+#-----------------------------------------------------------#
 class Veracrypt(PrintText):
     def __init__(self):
         if is_executable('veracrypt'):
@@ -694,11 +852,49 @@ class Papirus(PrintText):
     def __init__(self):
         self.papirus_url = 'https://github.com/PapirusDevelopmentTeam/papirus-icon-theme/archive/master.tar.gz'
         self.papirus_tar_file = os.path.abspath(os.path.join(DirDownloads, 'papirus.tar.gz'))
+        self.dir_papirus = os.path.abspath(os.path.join(DirIcons, 'Papirus'))
+        self.dir_papirus_dark = os.path.abspath(os.path.join(DirIcons, 'Papirus-Dark'))
+        self.dir_papirus_light = os.path.abspath(os.path.join(DirIcons, 'Papirus-Light'))
+        self.dir_epapirus = os.path.abspath(os.path.join(DirIcons, 'ePapirus'))
+
 
     def papirus_tar(self):
         wget_download(self.papirus_url, self.papirus_tar_file)
+        unpack.tar(self.papirus_tar_file)
+        os.chdir(DirUnpack)
+        os.system('mv papirus-* papirus')
+        os.chdir('papirus')
+
+        if os.path.isdir(self.dir_papirus) == True:
+            self.red(f'Removendo ... {self.dir_papirus}')
+            shutil.rmtree(self.dir_papirus)
+
+        if os.path.isdir(self.dir_papirus_dark) == True:
+            self.red(f'Removendo ... {self.dir_papirus_dark}')
+            shutil.rmtree(self.dir_papirus_dark)
+
+        if os.path.isdir(self.dir_papirus_light) == True:
+            self.red(f'Removendo ... {self.dir_papirus_light}')
+            shutil.rmtree(self.dir_papirus_light)
+
+        if os.path.isdir(self.dir_epapirus) == True:
+            self.red(f'Removendo ... {self.dir_epapirus}')
+            shutil.rmtree(self.dir_epapirus)
+
+        self.green(f'Instalando ... {self.dir_papirus}')
+        os.system(f'cp -R Papirus {self.dir_papirus}')
+
+        self.green(f'Instalando ... {self.dir_papirus_dark}')
+        os.system(f'cp -R Papirus-Dark {self.dir_papirus_dark}')
+
+        self.green(f'Instalando ... {self.dir_papirus_light}')
+        os.system(f'cp -R Papirus-Dark {self.dir_papirus_light}')
+
+        self.green(f'Instalando ... {self.dir_epapirus}')
+        os.system(f'cp -R Papirus-Dark {self.dir_epapirus}')
 
     def install(self):
+        self.msg('Instalando papirus')
         if platform.system() == 'Linux':
             self.papirus_tar()
     
