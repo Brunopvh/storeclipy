@@ -2,15 +2,17 @@
 # -*- coding: utf-8 -*-
 import sys, os
 import urllib.request
+import platform
+import lib.wget as wget
 
-
+'''
 try:
     import wget
 except Exception as err:
     print(err)
     print('Instale o módulo wget: pip3 install wget --user')
     sys.exit()
-
+'''
 
 class Downloader:
     def __init__(self, url, output_path):
@@ -39,10 +41,8 @@ class Downloader:
             progress_line = (num_space_line * progress)
             null_line = (num_space_widh - progress_line)
             show_line = f'{("=" * progress_line)}{("-" * null_line)}'
-            if progress == 100:
-                print(f'{progress}% [{show_line}] ({current}/{total}){und} OK')
-            else:
-                print(f'\033[K{progress}% [{show_line}] ({current}/{total}){und}', end='\r')
+
+            print(f'\033[K{progress}% [{show_line}] ({current}/{total}){und}', end='\r')
         else:
             print(f'\033[KAguarde...', end='\r')
 
@@ -70,23 +70,34 @@ class Downloader:
             print(f'Arquivo encontrado ... {self.output_path}')
             return True
 
-        print(f'Conectando ... {self.url}')
         print(f'Destino ... {self.output_path}')
         wget.download(self.url, self.output_path, bar=self.bar_custom)
         print('')
 
+    def curl_download(self):
+        print(f'Destino ... {self.output_path}')
+        if (platform.system() != 'Windows'):
+            os.system(f'curl -S -L {url} -o {output_path}')
+        else:
+            os.system(f'curl.exe -S -L {url} -o {output_path}')
   
-# info = urllib.request.urlopen(url)
-# length = int(info.getheader('content-length'))
-# if length and (length != None):
            
 def run_download(url, output_path):
+    # info = urllib.request.urlopen(url)
+    # length = int(info.getheader('content-length'))
+    # if length and (length != None):
     
     if os.path.isfile(output_path) == True:
         print(f'Arquivo encontrado ... {output_path}')
         return
     
-    Downloader(url, output_path).wget_download()
+    print(f'Conectando ... {url}')
+    info = urllib.request.urlopen(url)
+    length = info.getheader('content-length')
+    if length:
+        Downloader(url, output_path).wget_download()
+    else:
+        Downloader(url, output_path).curl_download()
 
 
 

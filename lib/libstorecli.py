@@ -104,7 +104,7 @@ class PrintText:
     
     def line(self, char=None):
         if char == None:
-            print('-' * columns)
+            print('=' * columns)
         else:
             print(char * columns)
 
@@ -129,6 +129,7 @@ if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
     #DirTemp = tempfile.mkdtemp()
     DirTemp = os.path.abspath(os.path.join('/tmp', app_name, getuser())) #f'/tmp/{getuser()}_tmp'
     DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
+    DirGitclone = os.path.abspath(os.path.join(DirTemp, 'gitclone'))
 
     list_dirs = [
         DirHome,
@@ -138,7 +139,8 @@ if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
         DirDownloads,
         DirTemp,
         DirUnpack,
-        DirDesktopFiles
+        DirGitclone,
+        DirDesktopFiles,
     ]
 
 elif platform.system() == 'Windows':
@@ -149,6 +151,7 @@ elif platform.system() == 'Windows':
     #DirTemp = tempfile.mkdtemp()
     DirTemp = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name, 'temp'))
     DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
+    DirGitclone = os.path.abspath(os.path.join(DirTemp, 'gitclone'))
 
     list_dirs = [
         DirHome,
@@ -158,6 +161,7 @@ elif platform.system() == 'Windows':
         DirDownloads,
         DirTemp,
         DirUnpack,
+        DirGitclone,
     ]
 
 def mkdir(path):
@@ -176,6 +180,14 @@ def mkdir(path):
 
 for DIR in list_dirs:
     mkdir(DIR)
+
+def rmdir(path):
+        if not os.access(path, os.W_OK):
+            print(f'Autênticação nescessária para apagar ... {path}')
+            os.system(f'sudo rm -rf {path}')
+        else:
+            print(f'Apagando ... {path}')
+            shutil.rmtree(path)
 
 def is_executable(exec):
     if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
@@ -400,22 +412,35 @@ class UnpackFiles:
     
 unpack = UnpackFiles(DirUnpack)
 
+# Clonar repositórios:
+def gitclone(repo):
+    os.chdir(DirGitclone)
+    dirs = os.listdir(DirGitclone)
+    for d in dirs:
+        if os.path.exists(d) == True:
+            yes_no = input(f'Deseja apagar {d} [{CYellow}s{CReset}/{CRed}n{CReset}]?: ').strip().lower()
+            if (yes_no == 's') or (yes_no == 'y'):
+                rmdir(d)
+
+    os.system(f'git clone {repo}')
+
+
 #-----------------------------------------------------------#
 # Acessórios
 #-----------------------------------------------------------#
 class Veracrypt(PrintText):
     def __init__(self):
-        if is_executable('veracrypt'):
-            self.yellow('veracrypt já está instalado')
-        self.msg('Instalando veracrypt')
         self.URL = 'https://www.veracrypt.fr/en/Downloads.html'
         self.veracrypt_sha256sum_txt = f'{DirTemp}/veracrypt-sha256.txt'
         self.veracrypt_sha256sum_sig = f'{DirTemp}veracrypt-sha256.txt.sig'
 
     def veracrypt_urls(self):
+        '''
+        Retornar todos os links encontrados na página de download do veracrypt.
+        '''
         return get_links(self.URL)
 
-    def linux(self):
+    def linux_tar(self):
         # Obter o link de download do pacote ".tar".
         urls = self.veracrypt_urls()
         for URL in urls:
@@ -497,28 +522,34 @@ class Veracrypt(PrintText):
         else:
             self.red('Falha na instalação de Veracrypt')
             return False
+            
+    def remove(self):
+        self.msg('Desisntalando veracrypt')
+        os.system('veracrypt-uninstall.sh')
 
     def install(self):
-        print('Sistema: {}'.format(ReleaseInfo().info('ID')))
+        if is_executable('veracrypt'):
+            self.yellow('veracrypt já está instalado use a opção "--remove" para desinstalar.')
+            return
+            
+        self.msg('Instalando veracrypt')
         if platform.system() == 'FreeBSD':
             self.freebsd()
         elif platform.system() == 'Linux':
-            self.linux()
+            self.linux_tar()
 
 #-----------------------------------------------------------#
 # Desenvolvimento
 #-----------------------------------------------------------#
 class Java(PrintText):
     def __init__(self):
-        self.url_java_linux = 'https://sdlc-esd.oracle.com/ESD6/JSCDL/jdk/8u261-b12/a4634525489241b9a9e1aa73d9e118e6/jre-8u261-linux-x64.tar.gz?GroupName=JSC&FilePath=/ESD6/JSCDL/jdk/8u261-b12/a4634525489241b9a9e1aa73d9e118e6/jre-8u261-linux-x64.tar.gz&BHost=javadl.sun.com&File=jre-8u261-linux-x64.tar.gz&AuthParam=1598148120_7913a8dde59167ff2af90c8fd03696f1&ext=.gz'
-        
-    def archlinux(self):
-        Pacman().install('jre11-openjdk')
+        pass    
 
     def install(self):
+        self.msg('Instalando: jre11-openjdk jre11-openjdk-headless')
         if platform.system() == 'Linux':
             if ReleaseInfo().info('ID') == 'arch':
-                self.archlinux()
+                Pacman().install('jre11-openjdk jre11-openjdk-headless')
 
 class Idea(PrintText):
     def __init__(self):
@@ -533,7 +564,10 @@ class Idea(PrintText):
         elif platform.system() == 'Windows':
             pass
 
-    def linux(self):
+    def linux_tar(self):
+        '''
+        Instalação do idea community via pacote tar.
+        '''
         run_download(self.idea_url, self.idea_tar_file)
         if sha256(self.idea_tar_file, self.shasum) == False:
             return False
@@ -592,7 +626,10 @@ class Idea(PrintText):
 
     def install(self):
         if platform.system() == 'Linux':
-            self.linux()
+            if ReleaseInfo().info('ID') == 'arch':
+                Pacman().install('intellij-idea-community-edition')
+            else:
+                self.linux_tar()
 
 class Pycharm(PrintText):
     def __init__(self):
@@ -617,7 +654,7 @@ class Pycharm(PrintText):
 
         os.system(self.pycharm_pkg)
 
-    def linux(self):
+    def linux_tar(self):
         if is_executable('pycharm'):
             print('Pycharm já instalado use "--remove pycharm" para desinstalar.')
             return
@@ -679,9 +716,45 @@ class Pycharm(PrintText):
 
     def install(self):
         if platform.system() == 'Linux':
-            self.linux()
+            if ReleaseInfo().info('ID') == 'arch': # No archlinux pycharm pode ser instalado com o pacman.
+                Pacman().install('pycharm-community-edition')
+            else:
+                self.linux()
         elif platform.system() == 'Windows':
             self.windows()
+     
+#-----------------------------------------------------------#
+# Escritório
+#-----------------------------------------------------------#
+     
+class MsFonts(PrintText):
+    def __init__(self):
+        pass    
+
+    def archlinux(self):
+        '''
+        Instalar fontes microsoft no ArchLinux.
+        '''
+        os.chdir(DirGitclone)
+        gitclone('https://aur.archlinux.org/ttf-ms-fonts.git')
+        os.chdir('ttf-ms-fonts')
+        self.blue('Executando: makepkg -s -f')
+        os.system('makepkg -s -f')
+
+        files = os.listdir('.')
+        for f in files:
+            if ('.tar.zst' in f) and ('ttf-ms-fonts' in f):
+                print('Renomeando ... ttf-ms-fonts.tar.zst')
+                shutil.move(f, 'ttf-ms-fonts.tar.zst')
+
+        print('Executando ... sudo pacman -U --noconfirm ttf-ms-fonts.tar.zst')
+        os.system('sudo pacman -U --noconfirm ttf-ms-fonts.tar.zst')
+
+    def install(self):
+        if platform.system() == 'Linux':
+            if ReleaseInfo().info('ID') == 'arch':
+                self.archlinux()
+            
 
 #-----------------------------------------------------------#
 # Navegadores

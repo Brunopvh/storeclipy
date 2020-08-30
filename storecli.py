@@ -94,7 +94,9 @@ args = parser.parse_args()
 # Lista de aplicativos disponíveis para instalação.
 apps_list = (
     'veracrypt',
+    'intellij-idea',
     'pycharm',
+    'fontes-ms',
     'google-chrome',
     'opera-stable', 
     'youtube-dl-gui',
@@ -135,7 +137,7 @@ elif args.pkg_for_install:          # Instalar um programa
         Browser().google_chrome()
     elif args.pkg_for_install == 'java':
         Java().install()
-    elif args.pkg_for_install == 'idea':
+    elif args.pkg_for_install == 'intellij-idea':
         Idea().install()
     elif args.pkg_for_install == 'pycharm':
         Pycharm().install()
@@ -143,6 +145,8 @@ elif args.pkg_for_install:          # Instalar um programa
         Papirus().install()
     elif args.pkg_for_install == 'searx':
         RunInstaller().searx()
+    elif args.pkg_for_install == 'fontes-ms':
+        MsFonts().install()
     elif args.pkg_for_install == 'torbrowser':
         Browser().torbrowser()
     elif args.pkg_for_install == 'theharvester':
@@ -155,9 +159,16 @@ elif args.pkg_for_install:          # Instalar um programa
         print(f'Programa indisponível: {args.pkg_for_install}')
 
 elif args.pkg_for_remove:          # Desinstalar um programa
-    if args.pkg_for_remove == 'pycharm':
+    if args.pkg_for_remove == 'veracrypt':
+        Veracrypt().remove()
+    elif args.pkg_for_remove == 'pycharm':
         Pycharm().remove()
-    elif args.pkg_for_remove == 'idea':
+    elif args.pkg_for_remove == 'intellij-idea':
         Idea().remove()
     else:
         print(f'[!] Não foi possivel remover {args.pkg_for_remove}')
+        
+        
+        
+        
+        
