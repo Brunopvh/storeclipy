@@ -717,9 +717,10 @@ class Pycharm(PrintText):
     def install(self):
         if platform.system() == 'Linux':
             if ReleaseInfo().info('ID') == 'arch': # No archlinux pycharm pode ser instalado com o pacman.
-                Pacman().install('pycharm-community-edition')
+                #Pacman().install('pycharm-community-edition')
+                self.linux_tar()
             else:
-                self.linux()
+                self.linux_tar()
         elif platform.system() == 'Windows':
             self.windows()
      
