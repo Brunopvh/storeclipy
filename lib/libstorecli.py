@@ -455,7 +455,7 @@ class Veracrypt(PrintText):
         
         run_download(url_veracrypt_linux, path_veracrypt_tarfile)
         run_download(url_veracrypt_linux_sig, path_veracrypt_tarfile_sig)
-
+        
         self.yellow('Importando key veracrypt')
         os.system('curl -s https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc | gpg --import - 1> /dev/null 2>&1')
 
@@ -496,7 +496,7 @@ class Veracrypt(PrintText):
         
         run_download(url_veracrypt_freebsd, path_veracrypt_tarfile)
         run_download(url_veracrypt_freebsd_sig, path_veracrypt_tarfile_sig)
-
+        
         self.yellow('Importando key veracrypt')
         os.system('curl -s https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc | gpg --import - 1> /dev/null 2>&1')
 
@@ -525,7 +525,7 @@ class Veracrypt(PrintText):
             
     def remove(self):
         self.msg('Desisntalando veracrypt')
-        os.system('veracrypt-uninstall.sh')
+        os.system('sudo /usr/bin/veracrypt-uninstall.sh')
 
     def install(self):
         if is_executable('veracrypt'):

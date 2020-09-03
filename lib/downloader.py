@@ -22,7 +22,7 @@ class Downloader:
 
     def bar_custom(self, current, total, width=80):
         # print('\033[K[>] Progresso: %d%% [%d / %d]MB ' % (progress, current, total), end='\r')
-        if current > 1048576: # Converter bytes para MB
+        if total > 1048576: # Converter bytes para MB
             current = current / 1048576
             total = total / 1048576
             und = 'MB'
@@ -34,17 +34,19 @@ class Downloader:
             current = '{:.2f}'.format(current)
             total = '{:.2f}'.format(total)
             progress = int(progress)
-            show_progress_msg = f'{progress}% {current}/{total}{und}'
+            show_progress_msg = '{}/{}{}'.format(current, total, und)
            
-            num_space_widh = int(self.terminal_widh - len(show_progress_msg) - 9) # Espaço livre disponível. 
-            num_space_line = int(num_space_widh // 100) # Dividir o espaço livre em 100 partes inteiras iguais.
+            num_space_widh = int(self.terminal_widh - len(show_progress_msg)) # Espaço livre disponível. 
+            num_space_line = int(num_space_widh // 100) # Dividir o espaço livre em 100 partes inteiras iguais. 
             progress_line = (num_space_line * progress)
-            null_line = (num_space_widh - progress_line)
-            show_line = f'{("=" * progress_line)}{("-" * null_line)}'
+            null_line = (num_space_widh - progress_line - (num_space_widh % 100) -1)
+            show_line = f'{("=" * progress_line)}>({progress}%){("-" * null_line)}'
+            show_download_progress = '[{}] | {} |'.format(show_line, show_progress_msg)
 
-            print(f'\033[K{progress}% [{show_line}] ({current}/{total}){und}', end='\r')
+            print(f'\033[K{show_download_progress}', end='\r')
         else:
             print(f'\033[KAguarde...', end='\r')
+            
 
     def bar_custom_old(self, current, total, width=80):
         # print('\033[K[>] Progresso: %d%% [%d / %d]MB ' % (progress, current, total), end='\r')
@@ -62,10 +64,6 @@ class Downloader:
         print(f'\033[KProgresso ... [{progress}%] [{current}/{total}]MB', end='\r')
 
     def wget_download(self):
-        '''
-        wget.download(url, out=None, bar=<function bar_adaptive at 0x7f7fdfed9d30>)
-        wget.download(url, out=None, bar=bar_adaptive(current, total, width=80))
-        '''
         if os.path.isfile(self.output_path):
             print(f'Arquivo encontrado ... {self.output_path}')
             return True
@@ -77,9 +75,9 @@ class Downloader:
     def curl_download(self):
         print(f'Destino ... {self.output_path}')
         if (platform.system() != 'Windows'):
-            os.system(f'curl -S -L {url} -o {output_path}')
+            os.system(f'curl -S -L {self.url} -o {self.output_path}')
         else:
-            os.system(f'curl.exe -S -L {url} -o {output_path}')
+            os.system(f'curl.exe -S -L {self.url} -o {self.output_path}')
   
            
 def run_download(url, output_path):
