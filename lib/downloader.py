@@ -5,14 +5,6 @@ import urllib.request
 import platform
 import lib.wget as wget
 
-'''
-try:
-    import wget
-except Exception as err:
-    print(err)
-    print('Instale o módulo wget: pip3 install wget --user')
-    sys.exit()
-'''
 
 class Downloader:
     def __init__(self, url, output_path):
@@ -36,32 +28,29 @@ class Downloader:
             progress = int(progress)
             show_progress_msg = '{}/{}{}'.format(current, total, und)
            
-            num_space_widh = int(self.terminal_widh - len(show_progress_msg)) # Espaço livre disponível. 
-            num_space_line = int(num_space_widh // 100) # Dividir o espaço livre em 100 partes inteiras iguais. 
+            # Espaço total da janela do terminal menos o total de caracteres da variavel 'show_progress_msg'.
+            num_space_widh = int(self.terminal_widh - len(show_progress_msg))  
+
+            # Dividir o numero inteiro da variavel 'num_space_widh' em 100 partes inteiras iguais que serão 
+            # preenchidas com '=>(percentual%)'. 
+            num_space_line = int(num_space_widh // 100) 
+
+            # Linha de progresso será exibida proporcionalmento ao percentual de download.
             progress_line = (num_space_line * progress)
+
+            # Espaço livre que será preenchido pela barra de progresso conforme o progresso do download.
             null_line = (num_space_widh - progress_line - (num_space_widh % 100) -1)
+
+            # Progresso será exibido da seguinte forma '[=>(percentual%)--------]'
             show_line = f'{("=" * progress_line)}>({progress}%){("-" * null_line)}'
-            show_download_progress = '[{}] | {} |'.format(show_line, show_progress_msg)
+
+            # Exibição formatada na tela do terminal.
+            show_download_progress = '[{}] | {} |'.format(show_line, show_progress_msg) 
 
             print(f'\033[K{show_download_progress}', end='\r')
         else:
             print(f'\033[KAguarde...', end='\r')
             
-
-    def bar_custom_old(self, current, total, width=80):
-        # print('\033[K[>] Progresso: %d%% [%d / %d]MB ' % (progress, current, total), end='\r')
-        
-        if current > 1048576: # Converter bytes para MB
-            current = current / 1048576
-            total = total / 1048576
-
-        progress = (current / total) * 100 # Percentual
-        
-        current = '{:.2f}'.format(current)
-        total = '{:.2f}'.format(total)
-        progress = '{:.1f}'.format(progress)
-        
-        print(f'\033[KProgresso ... [{progress}%] [{current}/{total}]MB', end='\r')
 
     def wget_download(self):
         if os.path.isfile(self.output_path):
@@ -73,6 +62,9 @@ class Downloader:
         print('')
 
     def curl_download(self):
+        '''
+        Realizar downloads com a ferramenta 'curl'.
+        '''
         print(f'Destino ... {self.output_path}')
         if (platform.system() != 'Windows'):
             os.system(f'curl -S -L {self.url} -o {self.output_path}')
