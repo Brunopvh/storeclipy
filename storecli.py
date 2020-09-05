@@ -92,21 +92,63 @@ args = parser.parse_args()
 # Execução
 #----------------------------------------------------------#
 # Lista de aplicativos disponíveis para instalação.
-apps_list = (
+apps_acessory = (
+    'etcher',
     'veracrypt',
+    )
+
+apps_development = (
     'intellij-idea',
     'pycharm',
+    )
+
+apps_office = (
     'fontes-ms',
+    )
+
+apps_browser = (
     'google-chrome',
-    'opera-stable', 
+    'opera-stable',
+    )
+
+apps_internet = (
     'youtube-dl-gui',
+    )
+
+apps_preferences = (
     'papirus',
 )
 
 if args.list_all_apps:
     print()
-    for X in apps_list:
-        print('   ', X)
+    print(' Acessorios:')
+    for app in apps_acessory:
+        print('   ', app)
+
+    print()
+    print(' Desenvolvimento:')
+    for app in apps_development:
+        print('   ', app)
+
+    print()
+    print(' Escritório:')
+    for app in apps_office:
+        print('   ', app)
+
+    print()
+    print(' Navegadores:')
+    for app in apps_browser:
+        print('   ', app)
+
+    print()
+    print(' Internet:')
+    for app in apps_internet:
+        print('   ', app)
+
+    print()
+    print(' Preferências:')
+    for app in apps_preferences:
+        print('   ', app)
 
 elif args.pkg_for_download:         # Realizar somente download do programa informado.
     if not args.dir_download:
@@ -133,6 +175,8 @@ elif args.pkg_for_install:          # Instalar um programa
         RunInstaller().wifiphisher()
     elif args.pkg_for_install == 'fluxion':
         RunInstaller().fluxion()
+    elif args.pkg_for_install == 'etcher':
+        Etcher().install()
     elif args.pkg_for_install == 'google-chrome':
         Browser().google_chrome()
     elif args.pkg_for_install == 'java':

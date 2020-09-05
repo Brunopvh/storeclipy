@@ -421,6 +421,8 @@ def gitclone(repo):
             yes_no = input(f'Deseja apagar {d} [{CYellow}s{CReset}/{CRed}n{CReset}]?: ').strip().lower()
             if (yes_no == 's') or (yes_no == 'y'):
                 rmdir(d)
+            else:
+            	return
 
     os.system(f'git clone {repo}')
 
@@ -428,6 +430,31 @@ def gitclone(repo):
 #-----------------------------------------------------------#
 # Acessórios
 #-----------------------------------------------------------#
+class Etcher(PrintText):
+	def __init__(self):
+		pass
+
+	def archlinux(self):
+		os.chdir(DirGitclone)
+		gitclone('https://aur.archlinux.org/balena-etcher.git')
+		os.chdir('balena-etcher')
+		self.yellow('Executando ... makepkg -s -f')
+		os.system(f'makepkg -s -f')
+
+		return
+		self.yellow(f'Executando sudo pacman -U $(ls google*.tar.*)')
+		os.system('sudo pacman -U --noconfirm $(ls google*.tar.*)')
+
+
+	def install(self):
+		if platform.system() == 'Linux':
+			if ReleaseInfo().info('ID') == 'arch':
+				self.archlinux()
+
+
+
+
+
 class Veracrypt(PrintText):
     def __init__(self):
         self.URL = 'https://www.veracrypt.fr/en/Downloads.html'

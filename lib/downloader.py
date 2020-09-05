@@ -27,7 +27,7 @@ class Downloader:
             total = '{:.2f}'.format(total)
             progress = int(progress)
             show_progress_msg = '{}/{}{}'.format(current, total, und)
-           
+
             # Espaço total da janela do terminal menos o total de caracteres da variavel 'show_progress_msg'.
             num_space_widh = int(self.terminal_widh - len(show_progress_msg))  
 
@@ -47,7 +47,10 @@ class Downloader:
             # Exibição formatada na tela do terminal.
             show_download_progress = '[{}] | {} |'.format(show_line, show_progress_msg) 
 
-            print(f'\033[K{show_download_progress}', end='\r')
+            if len(show_download_progress) < num_space_widh:
+                print(f'\033[KAguarde...', end='\r')
+            else:
+                print(f'\033[K{show_download_progress}', end='\r')
         else:
             print(f'\033[KAguarde...', end='\r')
             
