@@ -9,19 +9,25 @@ import platform
 
 __version__ = '2020-09-02'
 
+# Diretório onde o terminal está aberto.
+dir_run = os.getcwd()    
+
 # Endereço deste script no disco.
 dir_root = os.path.dirname(os.path.realpath(__file__)) 
+
+# Diretórios contento módulos locais.
+dir_lib = os.path.abspath(os.path.join(dir_root, 'lib'))
+
+# Diretório local para a lib 'BeautifulSoup'.
+dir_bs4 = os.path.abspath(os.path.join(dir_root, 'bs4'))
+
+# Inserir o diretório do script no PATH do python - print(sys.path)                          
+sys.path.insert(0, dir_lib)
+sys.path.insert(0, dir_bs4)
 
 # Nome do script/app
 app_name = os.path.basename(__file__)
 
-# Diretório onde o terminal está aberto.
-dir_run = os.getcwd()        
-
-# Inserir o diretório do script no PATH do python - print(sys.path)                          
-sys.path.insert(0, dir_root)
-
-#from lib.processloop import ProcessLoop
 from lib.print_text import PrintText  
 from lib.libstorecli import *
 

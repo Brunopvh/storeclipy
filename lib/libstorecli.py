@@ -32,6 +32,7 @@ if platform.system() != 'Windows':
     from lib.pkg import Pkg
     from lib.os_release import ReleaseInfo
 
+# Importar bs4 apartir do diretório local.
 try:
     from bs4 import BeautifulSoup
 except Exception as erro:
