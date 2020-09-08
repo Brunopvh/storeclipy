@@ -7,7 +7,7 @@ import re
 import argparse
 import platform 
 
-__version__ = '2020-09-02'
+__version__ = '2020-09-07'
 
 # Diretório onde o terminal está aberto.
 dir_run = os.getcwd()    
@@ -205,6 +205,8 @@ elif args.pkg_for_install:          # Instalar um programa
         YoutubeDlg().install()
     elif args.pkg_for_install == 'veracrypt':
         Veracrypt().install()
+    elif args.pkg_for_install == 'wine':
+        Wine().install()
     else:
         print(f'Programa indisponível: {args.pkg_for_install}')
 

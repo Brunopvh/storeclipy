@@ -128,7 +128,7 @@ if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
     DirDownloads = os.path.abspath(os.path.join(DirHome, '.cache', app_name, 'downloads'))
     DirIcons = os.path.abspath(os.path.join(DirHome, '.local', 'share', 'icons'))
     #DirTemp = tempfile.mkdtemp()
-    DirTemp = os.path.abspath(os.path.join('/tmp', app_name, getuser())) #f'/tmp/{getuser()}_tmp'
+    DirTemp = os.path.abspath(os.path.join('/tmp', app_name, getuser()))
     DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
     DirGitclone = os.path.abspath(os.path.join(DirTemp, 'gitclone'))
 
@@ -188,7 +188,8 @@ def rmdir(path):
             os.system(f'sudo rm -rf {path}')
         else:
             print(f'Apagando ... {path}')
-            shutil.rmtree(path)
+            #shutil.rmtree(path)
+            os.system(f'rm -rf {path}')
 
 def is_executable(exec):
     if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
@@ -252,14 +253,6 @@ def check_gpg(sig_file, file):
 # Descompressão de arquivos.
 #-----------------------------------------------------------#
 def unpack_tar(tar_file, output_dir=DirUnpack):
-        # https://docs.python.org/3.3/library/tarfile.html
-
-        '''
-        # Verificar se o arquivo e do tipo tar
-        if not tarfile.is_tarfile(file):
-            print(f'O arquivo NÃO é do tipo {s.red}.tar{s.reset}: {file}')
-            return
-        '''
         try: 
             os.chdir(output_dir)
         except:
@@ -291,8 +284,6 @@ def unpack_tar(tar_file, output_dir=DirUnpack):
             print('OK')
 
 def unpack_zip(zip_file, output_dir=DirUnpack):
-        # https://docs.python.org/pt-br/3/library/zipfile.html
-        # https://www.geeksforgeeks.org/working-zip-files-python/
         try: 
             os.chdir(output_dir)
         except:
@@ -329,13 +320,13 @@ def unpack_zip(zip_file, output_dir=DirUnpack):
     
 
 
-class UnpackFiles:
-    def __init__(self, destination=os.getcwd()):
+class UnpackFiles(PrintText):
+    def __init__(self, destination=DirUnpack):
         self.destination = destination
 
     def check_destination(self):
         if os.path.isdir(self.destination) == False:
-            os.makedirs(self.destination)
+            mkdir(self.destination)
 
         if os.access(self.destination, os.W_OK) == True:
             return True
@@ -343,31 +334,23 @@ class UnpackFiles:
             print(f'[!] Falha você não tem permissão de escrita em: {self.destination}')
             return False
 
-    def clear_dir(self):
+    def clear_dir_unpack(self):
         if self.check_destination() != True:
             return
         
-        print(f'Limpando ... {self.destination}')
-        try:
-            #shutil.rmtree(DIR)
-            os.system(f'rm -rf {self.destination}')
-        except:
-            print(f'Autenticação nescessária para remover ... {DIR}')
-            os.system(f'sudo rm -rf {self.destination}')
-            
-        mkdir(self.destination)
+        os.chdir(self.destination)
+       	files = os.listdir(self.destination)
+
+       	for f in files:
+        	rmdir(f)    
 
     def tar(self, file):
-        # https://docs.python.org/3.3/library/tarfile.html
-
-        '''
         # Verificar se o arquivo e do tipo tar
         if not tarfile.is_tarfile(file):
-            print(f'O arquivo NÃO é do tipo {s.red}.tar{s.reset}: {file}')
+            self.red(f'O arquivo {file} NÃO é do tipo ".tar"')
             return
-        '''
             
-        self.clear_dir()
+        self.clear_dir_unpack()
         print(f'Descomprimindo: {file}', end= ' ')
         os.chdir(self.destination)
         try:
@@ -380,23 +363,16 @@ class UnpackFiles:
             sys.exit()
         except Exception as err:
             print()
-            print(f'Falha na descompressão de: {file}\n', err)
-            sys.exit('1')
+            self.red(f'Falha na descompressão de: {file}\n', err)
+            sys.exit(1)
 
     def zip(self, file):
-        # https://docs.python.org/pt-br/3/library/zipfile.html
-        # https://www.geeksforgeeks.org/working-zip-files-python/
-
         # Verificar se o arquivo e do tipo zip
         if not is_zipfile(file):
-            print(f'O arquivo NÃO é do tipo (.zip) ... {file}')
+            self.red(f'O arquivo {file} NÃO é do tipo (.zip)')
             return
 
-        if self.check_destination() == 'False':
-            print('Saindo')
-            return
-
-        self.clear_dir()
+        self.clear_dir_unpack()
         print(f'Descomprimindo: {file}', end= ' ')
         os.chdir(self.destination)
 
@@ -408,10 +384,23 @@ class UnpackFiles:
             print('OK')
         except:
             print()
-            print(f'Falha na descompressão de: {file}')
+            self.red(f'Falha na descompressão do arquivo ... {file}')
             sys.exit('1')
-    
-unpack = UnpackFiles(DirUnpack)
+
+    def deb(self, file):
+    	self.clear_dir_unpack()
+    	os.chdir(DirUnpack)
+
+    	print(f'Descomprimindo ... {file}', end=' ')
+    	try:
+    		os.system(f'ar -x {file} --output={DirUnpack} 1> /dev/null 2>&1')
+    	except Exception as err:
+    		print(' ')
+    		self.red(err)
+    		sys.exit(1)
+    	else:
+    		print('OK')
+
 
 # Clonar repositórios:
 def gitclone(repo):
@@ -435,25 +424,33 @@ class Etcher(PrintText):
 	def __init__(self):
 		pass
 
-	def archlinux(self):
-		os.chdir(DirGitclone)
-		gitclone('https://aur.archlinux.org/balena-etcher.git')
-		os.chdir('balena-etcher')
-		self.yellow('Executando ... makepkg -s -f')
-		os.system(f'makepkg -s -f')
+	def etcher_appimage(self):
+		# https://github.com/balena-io/etcher/releases
+		url_etcher_appimage = 'https://github.com/balena-io/etcher/releases/download/v1.5.99/balenaEtcher-1.5.99-x64.AppImage'
+		url_etcher_deb = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
 
-		return
-		self.yellow(f'Executando sudo pacman -U $(ls google*.tar.*)')
-		os.system('sudo pacman -U --noconfirm $(ls google*.tar.*)')
+		name_etcher = os.path.basename(url_etcher_deb)
+		path_etcher = os.path.abspath(os.path.join(DirDownloads, name_etcher))
+		etcher_desktop_file = os.path.abspath(os.path.join(DirDesktopFiles, 'etcher.desktop'))
 
+		run_download(url_etcher_deb, path_etcher)
+		UnpackFiles().deb(path_etcher)
+		os.chdir(DirUnpack)
+		self.yellow(f'Descomprimindo ... {DirUnpack}/data.tar.bz2')
+		os.system('sudo tar -jxvf data.tar.bz2 -C / 1> /dev/null')
+		print('Criando link ... /usr/local/bin/balena-etcher-electron')
+		os.system('sudo chmod a+x /opt/balenaEtcher')
+		os.system('sudo ln -sf /opt/balenaEtcher/balena-etcher-electron /usr/local/bin/balena-etcher-electron')
+
+		if is_executable('balena-etcher-electron') == True:
+			self.yellow('balenaEtcher instalado com sucesso.')
+		else:
+			self.red('Falha na instalação de balenaEtcher.')
 
 	def install(self):
 		if platform.system() == 'Linux':
 			if ReleaseInfo().info('ID') == 'arch':
-				self.archlinux()
-
-
-
+				self.etcher_appimage()
 
 
 class Veracrypt(PrintText):
@@ -532,7 +529,7 @@ class Veracrypt(PrintText):
             self.red(f'Arquivo não confiavel: {path_veracrypt_tarfile}')
             return False
         
-        unpack.tar(path_veracrypt_tarfile)
+        UnpackFiles().tar(path_veracrypt_tarfile)
         os.chdir(DirUnpack)
         files_in_dir = os.listdir(DirUnpack)
         for file in files_in_dir:
@@ -1089,3 +1086,21 @@ class Papirus(PrintText):
             #self.papirus_tar()
             Pkg().install('papirus-icon-theme')
     
+#-----------------------------------------------------------#
+# Wine
+#-----------------------------------------------------------#
+class Wine(PrintText):
+	def __init__(self):
+		pass
+
+	def install(self):
+		url_installer_pywine = 'https://raw.github.com/Brunopvh/pywine/master/INSTALL.sh'
+		path_installer_pywine = os.path.abspath(os.path.join(DirDownloads, 'wine-installer.sh'))
+
+		if platform.system() == 'Linux':
+			run_download(url_installer_pywine, path_installer_pywine)
+			os.system(f'chmod +x {path_installer_pywine}')
+			self.yellow(f'Executando ... sudo sh {path_installer_pywine}')
+			os.system(f'sudo sh {path_installer_pywine}')
+			os.system('wine-install --install wine')
+
