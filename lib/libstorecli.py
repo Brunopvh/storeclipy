@@ -27,7 +27,8 @@ from lib.print_text import PrintText
 from lib.downloader import *
 
 if platform.system() != 'Windows':
-    from lib.apt_get import AptGet 
+    from lib.apt_get import AptGet
+    from lib.dpkg import Dpkg 
     from lib.pacman import Pacman
     from lib.pkg import Pkg
     from lib.os_release import ReleaseInfo
@@ -450,14 +451,22 @@ class Etcher(PrintText):
             self.red('Falha na instalação de balenaEtcher.')
 
     def etcher_debian(self):
+        # https://github.com/balena-io/etcher
         url_etcher_deb = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
+        repo_etcher_debian = 'deb https://deb.etcher.io stable etcher'
 
         name_etcher = os.path.basename(url_etcher_deb)
         path_etcher = os.path.abspath(os.path.join(DirDownloads, name_etcher))
 
         run_download(url_etcher_deb, path_etcher)
+
+        self.yellow('Adicionando key e repositório')
+        os.system('sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com:443 --recv-keys 379CE192D401AB61')
+        os.system(f'echo "{repo_etcher_debian}" | sudo tee /etc/apt/sources.list.d/balena-etcher.list')
+        AptGet().update()
         self.yellow(f'Instalando ... {path_etcher}')
         Dpkg().install(path_etcher)
+        AptGet().broke()
 
         if is_executable('balena-etcher-electron') == True:
             self.yellow('balenaEtcher instalado com sucesso.')

@@ -93,7 +93,7 @@ class Dpkg:
 	def install(self, deb_package):
 		self.apt_process_loop() # Verificar se existe outro processo 'apt' em execução no sistema.
 		print(line)
-		print(f'Instalando ... {deb_package}')			
+		print(f'Executando ... sudo dpkg --install {deb_package}')			
 		print(line)
 		os.system(f'sudo dpkg --install {deb_package}')
 

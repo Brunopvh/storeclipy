@@ -100,6 +100,21 @@ class AptGet:
 				break
 			else:				
 				ProcessLoop(pid_apt).process_loop()
+
+	def broke(self):
+		self.apt_process_loop()
+		commands = (
+			'sudo dpkg --configure -a',
+			'sudo apt clean',
+			'sudo apt remove',
+			'sudo apt update',
+			'sudo apt install -y -f',
+			'sudo apt-get --fix-broken install'
+			)
+
+		for c in commands:
+			print(f'Executando ... {c}')
+			os.system(c)
 				
 	def install(self, pkgs):
 		self.apt_process_loop() # Verificar se existe outro processo 'apt' em execução no sistema.
