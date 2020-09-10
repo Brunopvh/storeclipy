@@ -67,55 +67,38 @@ class ProcessLoop:
 			num += 1
 			
 
-class AptGet:
+class Dpkg:
 
 	def __init__(self):
 		pass
 			
-	def pkg_is_list(self, pkgs):
-		'''
-		Verificar se os pacotes foram passados para classe em forma de lista
-		'''
-		if isinstance(pkgs, list): 
-			return 'True'
-		else:
-			print('\033[0;31mFalha o(s) pacotes para instalação precisam ser passados em forma de uma lista.\033[m') 
-			print(__class__)
-			return 'False'
-	
 	def apt_process_loop(self):
 		all_procs = ' '
 		
 		while True:
 			all_procs = ProcessLoop().get_process_list()
 			for P in all_procs:
-				if ('apt install' in P) or ('_apt' in P) or ('apt update' in P) or ('apt remove' in P):
-					pid_apt = P.split()[1] # Converter a linha de saída em lista e retornar o segundo item.
+				if ('dpkg --install' in P) or ('dpkg -i' in P) or ('apt install' in P) or ('apt remove' in P):
+					pid_dpkg = P.split()[1] # Converter a linha de saída em lista e retornar o segundo item.
 					sleep(0.1)
 					break
 				else:
-					pid_apt = None
+					pid_dpkg = None
 
-			if pid_apt == None:
+			if pid_dpkg == None:
 				break
 			else:				
-				ProcessLoop(pid_apt).process_loop()
+				ProcessLoop(pid_dpkg).process_loop()
 				
-	def install(self, pkgs):
+	def install(self, deb_package):
 		self.apt_process_loop() # Verificar se existe outro processo 'apt' em execução no sistema.
 		print(line)
-		print(f'Instalando: {pkgs}')			
+		print(f'Instalando ... {deb_package}')			
 		print(line)
-		os.system(f'sudo apt install {pkgs}')
-
-	def update(self):
-		print(line)
-		self.apt_process_loop()
-		print('Executando: sudo apt update')
-		os.system('sudo apt update')
+		os.system(f'sudo dpkg --install {deb_package}')
 
 if __name__ == '__main__':
-	AptGet().install(sys.argv[1:])
+	Dpkg().install(sys.argv[1:])
 	
 
 

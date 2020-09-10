@@ -7,7 +7,7 @@ import re
 import argparse
 import platform 
 
-__version__ = '2020-09-07'
+__version__ = '2020-09-09'
 
 # Diretório onde o terminal está aberto.
 dir_run = os.getcwd()    
@@ -177,11 +177,7 @@ elif args.pkg_for_download:         # Realizar somente download do programa info
 
 elif args.pkg_for_install:          # Instalar um programa
 
-    if args.pkg_for_install == 'wifiphisher':
-        RunInstaller().wifiphisher()
-    elif args.pkg_for_install == 'fluxion':
-        RunInstaller().fluxion()
-    elif args.pkg_for_install == 'etcher':
+    if args.pkg_for_install == 'etcher':
         Etcher().install()
     elif args.pkg_for_install == 'google-chrome':
         Browser().google_chrome()

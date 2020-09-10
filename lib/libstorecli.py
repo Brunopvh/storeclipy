@@ -238,14 +238,17 @@ def sha256(file, sum):
         return False
 
 def check_gpg(sig_file, file):
-    print(f'gpg: verificando arquivo ... {file}', end=' ')
-    out = subprocess.getstatusoutput(f'gpg --verify {sig_file} {file}')
-    if out[0] == 0:
-        print('OK')
-        return True
+    if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
+        print(f'gpg: verificando arquivo ... {file}', end=' ')
+        out = subprocess.getstatusoutput(f'gpg --verify {sig_file} {file}')
+        if out[0] == 0:
+            print('OK')
+            return True
+        else:
+            print('')
+            PrintText().red(out[1])
+            return False
     else:
-        print('')
-        PrintText().red(out[1])
         return False
 
 
@@ -424,14 +427,13 @@ class Etcher(PrintText):
 	def __init__(self):
 		pass
 
-	def etcher_appimage(self):
+	def etcher_archlinux(self):
 		# https://github.com/balena-io/etcher/releases
 		url_etcher_appimage = 'https://github.com/balena-io/etcher/releases/download/v1.5.99/balenaEtcher-1.5.99-x64.AppImage'
 		url_etcher_deb = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
 
 		name_etcher = os.path.basename(url_etcher_deb)
 		path_etcher = os.path.abspath(os.path.join(DirDownloads, name_etcher))
-		etcher_desktop_file = os.path.abspath(os.path.join(DirDesktopFiles, 'etcher.desktop'))
 
 		run_download(url_etcher_deb, path_etcher)
 		UnpackFiles().deb(path_etcher)
@@ -447,11 +449,28 @@ class Etcher(PrintText):
 		else:
 			self.red('Falha na instalação de balenaEtcher.')
 
+    def etcher_debian(self):
+        url_etcher_deb = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
+
+        name_etcher = os.path.basename(url_etcher_deb)
+        path_etcher = os.path.abspath(os.path.join(DirDownloads, name_etcher))
+
+        run_download(url_etcher_deb, path_etcher)
+        self.yellow(f'Instalando ... {path_etcher}')
+        Dpkg().install(path_etcher)
+
+        if is_executable('balena-etcher-electron') == True:
+            self.yellow('balenaEtcher instalado com sucesso.')
+        else:
+            self.red('Falha na instalação de balenaEtcher.')
+
+
 	def install(self):
 		if platform.system() == 'Linux':
 			if ReleaseInfo().info('ID') == 'arch':
-				self.etcher_appimage()
-
+				self.etcher_archlinux()
+            elif ReleaseInfo().info('ID') == 'debian':
+                self.etcher_debian()
 
 class Veracrypt(PrintText):
     def __init__(self):
