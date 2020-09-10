@@ -342,10 +342,10 @@ class UnpackFiles(PrintText):
             return
         
         os.chdir(self.destination)
-       	files = os.listdir(self.destination)
+        files = os.listdir(self.destination)
 
-       	for f in files:
-        	rmdir(f)    
+        for f in files:
+            rmdir(f)    
 
     def tar(self, file):
         # Verificar se o arquivo e do tipo tar
@@ -391,18 +391,18 @@ class UnpackFiles(PrintText):
             sys.exit('1')
 
     def deb(self, file):
-    	self.clear_dir_unpack()
-    	os.chdir(DirUnpack)
+        self.clear_dir_unpack()
+        os.chdir(DirUnpack)
 
-    	print(f'Descomprimindo ... {file}', end=' ')
-    	try:
-    		os.system(f'ar -x {file} --output={DirUnpack} 1> /dev/null 2>&1')
-    	except Exception as err:
-    		print(' ')
-    		self.red(err)
-    		sys.exit(1)
-    	else:
-    		print('OK')
+        print(f'Descomprimindo ... {file}', end=' ')
+        try:
+            os.system(f'ar -x {file} --output={DirUnpack} 1> /dev/null 2>&1')
+        except Exception as err:
+            print(' ')
+            self.red(err)
+            sys.exit(1)
+        else:
+            print('OK')
 
 
 # Clonar repositórios:
@@ -415,7 +415,7 @@ def gitclone(repo):
             if (yes_no == 's') or (yes_no == 'y'):
                 rmdir(d)
             else:
-            	return
+                return
 
     os.system(f'git clone {repo}')
 
@@ -424,30 +424,30 @@ def gitclone(repo):
 # Acessórios
 #-----------------------------------------------------------#
 class Etcher(PrintText):
-	def __init__(self):
-		pass
+    def __init__(self):
+        pass
 
-	def etcher_archlinux(self):
-		# https://github.com/balena-io/etcher/releases
-		url_etcher_appimage = 'https://github.com/balena-io/etcher/releases/download/v1.5.99/balenaEtcher-1.5.99-x64.AppImage'
-		url_etcher_deb = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
+    def etcher_archlinux(self):
+        # https://github.com/balena-io/etcher/releases
+        url_etcher_appimage = 'https://github.com/balena-io/etcher/releases/download/v1.5.99/balenaEtcher-1.5.99-x64.AppImage'
+        url_etcher_deb = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
 
-		name_etcher = os.path.basename(url_etcher_deb)
-		path_etcher = os.path.abspath(os.path.join(DirDownloads, name_etcher))
+        name_etcher = os.path.basename(url_etcher_deb)
+        path_etcher = os.path.abspath(os.path.join(DirDownloads, name_etcher))
 
-		run_download(url_etcher_deb, path_etcher)
-		UnpackFiles().deb(path_etcher)
-		os.chdir(DirUnpack)
-		self.yellow(f'Descomprimindo ... {DirUnpack}/data.tar.bz2')
-		os.system('sudo tar -jxvf data.tar.bz2 -C / 1> /dev/null')
-		print('Criando link ... /usr/local/bin/balena-etcher-electron')
-		os.system('sudo chmod a+x /opt/balenaEtcher')
-		os.system('sudo ln -sf /opt/balenaEtcher/balena-etcher-electron /usr/local/bin/balena-etcher-electron')
+        run_download(url_etcher_deb, path_etcher)
+        UnpackFiles().deb(path_etcher)
+        os.chdir(DirUnpack)
+        self.yellow(f'Descomprimindo ... {DirUnpack}/data.tar.bz2')
+        os.system('sudo tar -jxvf data.tar.bz2 -C / 1> /dev/null')
+        print('Criando link ... /usr/local/bin/balena-etcher-electron')
+        os.system('sudo chmod a+x /opt/balenaEtcher')
+        os.system('sudo ln -sf /opt/balenaEtcher/balena-etcher-electron /usr/local/bin/balena-etcher-electron')
 
-		if is_executable('balena-etcher-electron') == True:
-			self.yellow('balenaEtcher instalado com sucesso.')
-		else:
-			self.red('Falha na instalação de balenaEtcher.')
+        if is_executable('balena-etcher-electron') == True:
+            self.yellow('balenaEtcher instalado com sucesso.')
+        else:
+            self.red('Falha na instalação de balenaEtcher.')
 
     def etcher_debian(self):
         url_etcher_deb = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
@@ -465,10 +465,10 @@ class Etcher(PrintText):
             self.red('Falha na instalação de balenaEtcher.')
 
 
-	def install(self):
-		if platform.system() == 'Linux':
-			if ReleaseInfo().info('ID') == 'arch':
-				self.etcher_archlinux()
+    def install(self):
+        if platform.system() == 'Linux':
+            if ReleaseInfo().info('ID') == 'arch':
+                self.etcher_archlinux()
             elif ReleaseInfo().info('ID') == 'debian':
                 self.etcher_debian()
 
@@ -1109,17 +1109,17 @@ class Papirus(PrintText):
 # Wine
 #-----------------------------------------------------------#
 class Wine(PrintText):
-	def __init__(self):
-		pass
+    def __init__(self):
+        pass
 
-	def install(self):
-		url_installer_pywine = 'https://raw.github.com/Brunopvh/pywine/master/INSTALL.sh'
-		path_installer_pywine = os.path.abspath(os.path.join(DirDownloads, 'wine-installer.sh'))
+    def install(self):
+        url_installer_pywine = 'https://raw.github.com/Brunopvh/pywine/master/INSTALL.sh'
+        path_installer_pywine = os.path.abspath(os.path.join(DirDownloads, 'wine-installer.sh'))
 
-		if platform.system() == 'Linux':
-			run_download(url_installer_pywine, path_installer_pywine)
-			os.system(f'chmod +x {path_installer_pywine}')
-			self.yellow(f'Executando ... sudo sh {path_installer_pywine}')
-			os.system(f'sudo sh {path_installer_pywine}')
-			os.system('wine-install --install wine')
+        if platform.system() == 'Linux':
+            run_download(url_installer_pywine, path_installer_pywine)
+            os.system(f'chmod +x {path_installer_pywine}')
+            self.yellow(f'Executando ... sudo sh {path_installer_pywine}')
+            os.system(f'sudo sh {path_installer_pywine}')
+            os.system('wine-install --install wine')
 
