@@ -207,7 +207,9 @@ elif args.pkg_for_install:          # Instalar um programa
         print(f'Programa indisponível: {args.pkg_for_install}')
 
 elif args.pkg_for_remove:          # Desinstalar um programa
-    if args.pkg_for_remove == 'veracrypt':
+    if args.pkg_for_remove == 'etcher':
+        Etcher().remove()
+    elif args.pkg_for_remove == 'veracrypt':
         Veracrypt().remove()
     elif args.pkg_for_remove == 'pycharm':
         Pycharm().remove()

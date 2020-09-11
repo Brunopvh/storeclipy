@@ -389,12 +389,6 @@ class Etcher(PrintText):
 
     def etcher_debian(self):
         # https://github.com/balena-io/etcher
-        url_etcher_deb = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
-        repo_etcher_debian = 'deb https://deb.etcher.io stable etcher'
-
-        name_etcher = os.path.basename(url_etcher_deb)
-        path_etcher = os.path.abspath(os.path.join(DirDownloads, name_etcher))
-
         self.yellow('Adicionando key e repositório')
         os.system('sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com:443 --recv-keys 379CE192D401AB61')
         os.system(f'echo "{repo_etcher_debian}" | sudo tee /etc/apt/sources.list.d/balena-etcher.list')
