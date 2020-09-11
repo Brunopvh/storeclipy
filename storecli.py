@@ -7,7 +7,7 @@ import re
 import argparse
 import platform 
 
-__version__ = '2020-09-09'
+__version__ = '2020-09-10'
 
 # Diretório onde o terminal está aberto.
 dir_run = os.getcwd()    

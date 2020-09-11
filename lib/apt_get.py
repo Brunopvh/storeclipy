@@ -115,6 +115,13 @@ class AptGet:
 		for c in commands:
 			print(f'Executando ... {c}')
 			os.system(c)
+
+	def remove(self, pkg):
+		self.apt_process_loop() # Verificar se existe outro processo 'apt' em execução no sistema.
+		print(line)
+		print(f'Desinstalando: {pkg}')			
+		print(line)
+		os.system(f'sudo apt remove {pkg}')
 				
 	def install(self, pkgs):
 		self.apt_process_loop() # Verificar se existe outro processo 'apt' em execução no sistema.

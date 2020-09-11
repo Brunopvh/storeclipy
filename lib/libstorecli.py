@@ -33,13 +33,12 @@ if platform.system() != 'Windows':
     from lib.pkg import Pkg
     from lib.os_release import ReleaseInfo
 
-# Importar bs4 apartir do diretório local.
+
 try:
     from bs4 import BeautifulSoup
 except Exception as erro:
     print(erro, ' => execute: pip3 install bs4 --user')
     sys.exit()
-
 
 
 columns = os.get_terminal_size()[0]
@@ -79,7 +78,7 @@ CReset = '\033[0m'
 class PrintText:
     '''
     Use: class(PrintText)
-         self.red("text") - self.yellow("text") ...
+         self.red("text") ; self.yellow("text") ...
     '''
     def __init__(self):
         pass
@@ -184,19 +183,23 @@ for DIR in list_dirs:
     mkdir(DIR)
 
 def rmdir(path):
-        if not os.access(path, os.W_OK):
-            print(f'Autênticação nescessária para apagar ... {path}')
-            os.system(f'sudo rm -rf {path}')
-        else:
-            print(f'Apagando ... {path}')
-            #shutil.rmtree(path)
-            os.system(f'rm -rf {path}')
+	if platform.system() != 'Windows':
+		if not os.access(path, os.W_OK):
+			print(f'Autênticação nescessária para apagar ... {path}')
+			os.system(f'sudo rm -rf {path}')
+		else:
+			print(f'Apagando ... {path}')
+			os.system(f'rm -rf {path}')
+	elif platform.system() == 'Windows':
+		shutil.rmtree(path)
 
 def is_executable(exec):
-    if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
-        return True
-    else:
-        return False
+	if platform.system() != 'Windows':
+	    if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
+	        return True
+	    else:
+	        return False
+
 
 def get_html(url):
     try: 
@@ -222,6 +225,7 @@ def get_links(url):
             link = LINK.get('href')
             links.append(link)
         return links
+
 
 def sha256(file, sum):
     print(f'Gerando hash do arquivo ... {file}')
@@ -256,73 +260,6 @@ def check_gpg(sig_file, file):
 #-----------------------------------------------------------#
 # Descompressão de arquivos.
 #-----------------------------------------------------------#
-def unpack_tar(tar_file, output_dir=DirUnpack):
-        try: 
-            os.chdir(output_dir)
-        except:
-            pass
-        else:
-            try:
-                shutil.rmtree(output_dir)
-            except:
-                print(f'Autênticação nescessária para remover ... {output_dir}')
-                os.system(f'sudo rm -rf {output_dir}')
-
-        if os.path.isdir(output_dir) == False:
-            mkdir(output_dir)
-
-        print(f'Descomprimindo: {tar_file}', end= ' ')
-        os.chdir(output_dir)
-        try:
-            tar = tarfile.open(tar_file)
-            tar.extractall()
-            tar.close()
-        except(KeyboardInterrupt):
-            print('Cancelado com Ctrl c')
-            sys.exit()
-        except Exception as err:
-            print()
-            print(f'Falha na descompressão do  arquivo ... {tar_file}\n', err)
-            sys.exit('1')
-        else:
-            print('OK')
-
-def unpack_zip(zip_file, output_dir=DirUnpack):
-        try: 
-            os.chdir(output_dir)
-        except:
-            pass
-        else:
-            try:
-                shutil.rmtree(output_dir)
-            except:
-                print(f'Autênticação nescessária para remover ... {output_dir}')
-                os.system(f'sudo rm -rf {output_dir}')
-
-        if os.path.isdir(output_dir) == False:
-            mkdir(output_dir)
-
-        # Verificar se o arquivo e do tipo zip
-        if not is_zipfile(file):
-            print(f'O arquivo NÃO é do tipo (.zip) ... {zip_file}')
-            return
-
-        print(f'Descomprimindo: {zip_file}', end= ' ')
-        os.chdir(zip_file)
-
-        try:
-            with ZipFile(zip_file, 'r') as zip: 
-                # printing all the contents of the zip file 
-                # zip.printdir()  
-                zip.extractall()
-        except:
-            print()
-            print(f'Falha na descompressão de ... {zip_file}')
-            sys.exit('1')
-        else:
-            print('OK')
-    
-
 
 class UnpackFiles(PrintText):
     def __init__(self, destination=DirUnpack):
@@ -458,14 +395,11 @@ class Etcher(PrintText):
         name_etcher = os.path.basename(url_etcher_deb)
         path_etcher = os.path.abspath(os.path.join(DirDownloads, name_etcher))
 
-        run_download(url_etcher_deb, path_etcher)
-
         self.yellow('Adicionando key e repositório')
         os.system('sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com:443 --recv-keys 379CE192D401AB61')
         os.system(f'echo "{repo_etcher_debian}" | sudo tee /etc/apt/sources.list.d/balena-etcher.list')
         AptGet().update()
-        self.yellow(f'Instalando ... {path_etcher}')
-        Dpkg().install(path_etcher)
+        AptGet().install('balena-etcher-electron')
         AptGet().broke()
 
         if is_executable('balena-etcher-electron') == True:
@@ -473,6 +407,13 @@ class Etcher(PrintText):
         else:
             self.red('Falha na instalação de balenaEtcher.')
 
+    def remove(self):
+        if platform.system() == 'Linux':
+            if ReleaseInfo().info('ID') == 'arch':
+                rmdir('/opt/balenaEtcher')
+                rmdir('/usr/local/bin/balena-etcher-electron')
+            elif ReleaseInfo().info('ID') == 'debian':
+                AptGet().remove('balena-etcher-electron')
 
     def install(self):
         if platform.system() == 'Linux':
@@ -517,7 +458,7 @@ class Veracrypt(PrintText):
             self.red(f'Arquivo não confiavel: {path_veracrypt_tarfile}')
             return False
         
-        unpack_tar(path_veracrypt_tarfile)
+        UnpackFiles().tar(path_veracrypt_tarfile)
         os.chdir(DirUnpack)
         files_in_dir = os.listdir(DirUnpack)
         for file in files_in_dir:
@@ -625,7 +566,7 @@ class Idea(PrintText):
         if sha256(self.idea_tar_file, self.shasum) == False:
             return False
 
-        unpack_tar(self.idea_tar_file)
+        UnpackFiles().tar(self.idea_tar_file)
         os.chdir(DirUnpack)
         print(f'Movendo ... {self.idea_dir}')
         os.system(f'mv idea-* {self.idea_dir}')
@@ -679,10 +620,7 @@ class Idea(PrintText):
 
     def install(self):
         if platform.system() == 'Linux':
-            if ReleaseInfo().info('ID') == 'arch':
-                Pacman().install('intellij-idea-community-edition')
-            else:
-                self.linux_tar()
+            self.linux_tar()
 
 class Pycharm(PrintText):
     def __init__(self):
