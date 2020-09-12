@@ -305,7 +305,7 @@ def check_gpg(sig_file, file):
 # Descompressão de arquivos.
 #-----------------------------------------------------------#
 
-class UnpackFiles(PrintText):
+class Unpack(PrintText):
     def __init__(self, destination=DirUnpack):
         self.destination = destination
 
@@ -434,7 +434,7 @@ class Etcher(PrintText):
         path_etcher = os.path.abspath(os.path.join(DirDownloads, name_etcher))
 
         run_download(url_etcher_deb, path_etcher)
-        UnpackFiles().deb(path_etcher)
+        Unpack().deb(path_etcher)
         os.chdir(DirUnpack)
         self.yellow(f'Descomprimindo ... {DirUnpack}/data.tar.bz2')
         os.system('sudo tar -jxvf data.tar.bz2 -C / 1> /dev/null')
@@ -512,7 +512,7 @@ class Veracrypt(PrintText):
             self.red(f'Arquivo não confiavel: {path_veracrypt_tarfile}')
             return False
         
-        UnpackFiles().tar(path_veracrypt_tarfile)
+        Unpack().tar(path_veracrypt_tarfile)
         os.chdir(DirUnpack)
         files_in_dir = os.listdir(DirUnpack)
         for file in files_in_dir:
@@ -552,7 +552,7 @@ class Veracrypt(PrintText):
             self.red(f'Arquivo não confiavel: {path_veracrypt_tarfile}')
             return False
         
-        UnpackFiles().tar(path_veracrypt_tarfile)
+        Unpack().tar(path_veracrypt_tarfile)
         os.chdir(DirUnpack)
         files_in_dir = os.listdir(DirUnpack)
         for file in files_in_dir:
@@ -620,7 +620,7 @@ class Idea(PrintText):
         if sha256(self.idea_tar_file, self.shasum) == False:
             return False
 
-        UnpackFiles().tar(self.idea_tar_file)
+        Unpack().tar(self.idea_tar_file)
         os.chdir(DirUnpack)
         print(f'Movendo ... {self.idea_dir}')
         os.system(f'mv idea-* {self.idea_dir}')
@@ -708,7 +708,7 @@ class Pycharm(PrintText):
         if sha256(self.pycharm_tar_file, self.pycharm_shasum) != True:
             return False
 
-        unpack.tar(self.pycharm_tar_file)
+        Unpack().tar(self.pycharm_tar_file)
         os.chdir(DirUnpack)
         print(f'Movendo ... {self.pycharm_dir}')
         os.system('mv pycharm-* {}'.format(self.pycharm_dir))
@@ -952,7 +952,7 @@ class YoutubeDlg(PrintText):
             
     def get_ytdlg(self):
         run_download(self.URL, self.path_file_zip)
-        unpack.zip(self.path_file_zip)
+        Unpack().zip(self.path_file_zip)
         
     def twodict(self):
         if is_executable('git') == 'False':
@@ -978,7 +978,7 @@ class YoutubeDlg(PrintText):
             
     def compile_ytdlg(self):
         run_download(self.URL, self.path_file_zip)
-        unpack.zip(self.path_file_zip)
+        Unpack().zip(self.path_file_zip)
         
         self.yellow('Compilando youtube-dl-gui')
         os.chdir(f'{DirUnpack}/youtube-dl-gui-master')
@@ -1062,7 +1062,7 @@ class Papirus(PrintText):
     def papirus_tar(self):
         self.msg('Instalando papirus')
         run_download(self.papirus_url, self.papirus_tar_file)
-        unpack.tar(self.papirus_tar_file)
+        Unpack().tar(self.papirus_tar_file)
         os.chdir(DirUnpack)
         os.system('mv papirus-* papirus')
         os.chdir('papirus')
