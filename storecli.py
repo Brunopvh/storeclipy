@@ -158,37 +158,37 @@ if args.list_all_apps: # Listar os aplicativos disponiveis para instalação.
         print('   ', app)
 
 elif args.pkg_for_install:          # Instalar um programa
-	for pkg in args.pkg_for_install:
-	    if pkg == 'etcher':
-	        Etcher().install()
-	    elif pkg == 'veracrypt':
-	        Veracrypt().install()
-	    elif pkg == 'google-chrome':
-	        Browser().google_chrome()
-	    elif pkg == 'java':
-	        Java().install()
-	    elif pkg == 'intellij-idea':
-	        Idea().install()
-	    elif pkg == 'pycharm':
-	        Pycharm().install()
-	    elif pkg == 'papirus':
-	        Papirus().install()
-	    elif pkg == 'searx':
-	        RunInstaller().searx()
-	    elif pkg == 'fontes-ms':
-	        MsFonts().install()
-	    elif pkg == 'torbrowser':
-	        Browser().torbrowser()
-	    elif pkg == 'theharvester':
-	        RunInstaller().theHarvester()
-	    elif pkg == 'youtube-dl-gui':
-	        YoutubeDlg().install()
-	    elif pkg == 'youtube-dl':
-	        youtube_dl()
-	    elif pkg == 'wine':
-	        Wine().install()
-	    else:
-	        print(f'Programa indisponível: {pkg}')
+    for pkg in args.pkg_for_install:
+        if pkg == 'etcher':
+            Etcher().install()
+        elif pkg == 'veracrypt':
+            Veracrypt().install()
+        elif pkg == 'google-chrome':
+            Browser().google_chrome()
+        elif pkg == 'java':
+            Java().install()
+        elif pkg == 'intellij-idea':
+            Idea().install()
+        elif pkg == 'pycharm':
+            Pycharm().install()
+        elif pkg == 'papirus':
+            Papirus().install()
+        elif pkg == 'searx':
+            RunInstaller().searx()
+        elif pkg == 'fontes-ms':
+            MsFonts().install()
+        elif pkg == 'torbrowser':
+            Browser().torbrowser()
+        elif pkg == 'youtube-dl':
+            YoutubeDl().install()
+        elif pkg == 'youtube-dl-gui':
+            YoutubeDlgGui().install()
+        elif pkg == 'youtube-dl':
+            youtube_dl()
+        elif pkg == 'wine':
+            Wine().install()
+        else:
+            print(f'Programa indisponível: {pkg}')
 
 elif args.pkg_for_remove:          # Desinstalar um programa
     if args.pkg_for_remove == 'etcher':

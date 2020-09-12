@@ -17,17 +17,19 @@ import shutil
 import platform
 import urllib.request
 import hashlib
-import gnupg
+
 from pathlib import Path
 from getpass import getuser
 from zipfile import ZipFile, is_zipfile
 from time import sleep
 from zipfile import ZipFile, is_zipfile
 
-from lib.print_text import PrintText
+# Local libs
 from lib.downloader import *
+from lib.gpg_v import *
 
 if platform.system() != 'Windows':
+    # Local libs para Linux/FreeBSD.
     from lib.apt_get import AptGet
     from lib.dpkg import Dpkg 
     from lib.pacman import Pacman
@@ -188,22 +190,22 @@ for DIR in list_dirs:
     mkdir(DIR)
 
 def rmdir(path):
-	if platform.system() != 'Windows':
-		if not os.access(path, os.W_OK):
-			print(f'Autênticação nescessária para apagar ... {path}')
-			os.system(f'sudo rm -rf {path}')
-		else:
-			print(f'Apagando ... {path}')
-			os.system(f'rm -rf {path}')
-	elif platform.system() == 'Windows':
-		shutil.rmtree(path)
+    if platform.system() != 'Windows':
+        if not os.access(path, os.W_OK):
+            print(f'Autênticação nescessária para apagar ... {path}')
+            os.system(f'sudo rm -rf {path}')
+        else:
+            print(f'Apagando ... {path}')
+            os.system(f'rm -rf {path}')
+    elif platform.system() == 'Windows':
+        shutil.rmtree(path)
 
 def is_executable(exec):
-	if platform.system() != 'Windows':
-	    if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
-	        return True
-	    else:
-	        return False
+    if platform.system() != 'Windows':
+        if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
+            return True
+        else:
+            return False
 
 
 def get_html(url):
@@ -252,39 +254,6 @@ def sha256(file, sum):
         print('FALHA')
         return False
 
-def gpg_import(key_file, url_key=None):
-    '''
-    https://docs.red-dove.com/python-gnupg/#importing-and-receiving-keys
-    https://gist.github.com/ryantuck/56c5aaa8f9124422ac964629f4c8deb0
-    https://www.programcreek.com/python/example/82300/gnupg.GPG
-
-    pip3 install python-gnupg --user
-    '''
-    if url_key != None:
-        print(f'Baixando ... {url_key}', end=' ')
-        try:
-            urllib.request.urlretrieve(url_key, key_file)
-        except Exception as err:
-            print('\n', err)
-            return False
-        else:
-            print('OK')
-
-    with open(key_file) as f:
-        key_data = f.read()
-
-    print(f'Importando ... {key_file}')  
-    gpg = gnupg.GPG(gnupghome=DirGpg)  
-    import_result = gpg.import_keys(key_data)
-    for k in import_result.results:
-        print(k)
-
-def gpg_verify(file, path_to_signature_file):
-   
-    gpg = gnupg.GPG(gnupghome=DirGpg)
-    with open(path_to_signature_file, 'rb') as f:
-        verified = gpg.verify_file(f, path_to_signature_file)
-        print(f'{file} ... {verified.status}')
     
 def check_gpg(sig_file, file):
     if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
@@ -400,23 +369,6 @@ def gitclone(repo):
                 return
 
     os.system(f'git clone {repo}')
-
-
-def youtube_dl():
-    print('Instalando: youtube-dl')
-    url_asc_philipp='https://phihag.de/keys/A4826A18.asc'
-    url_ytdl_file='https://yt-dl.org/downloads/latest/youtube-dl'
-    url_sig='https://yt-dl.org/downloads/latest/youtube-dl.sig'
-    
-    path_asc = f'{DirTemp}/philipp.asc'
-    path_sig = f'{DirTemp}/youtube-dl.sig'
-    path_ytdl = f'{DirDownloads}/youtube-dl-teste'
-
-    run_download('https://yt-dl.org/downloads/latest/youtube-dl', path_ytdl)
-    run_download('https://yt-dl.org/downloads/latest/youtube-dl.sig', path_sig)
-    #gpg_import(path_asc, 'https://phihag.de/keys/A4826A18.asc')
-    out = gpg_verify(path_ytdl, path_sig)
-    print(out)
 
 #-----------------------------------------------------------#
 # Acessórios
@@ -940,8 +892,39 @@ class Browser(PrintText):
 #-----------------------------------------------------------#
 # Internet
 #-----------------------------------------------------------#
+class YoutubeDl(PrintText):
+    def __init__(self):
+        '''
+        http://ytdl-org.github.io/youtube-dl/download.html
+        '''
+        self.url_asc_philipp = 'https://phihag.de/keys/A4826A18.asc'
+        self.url_sig = 'https://yt-dl.org/downloads/latest/youtube-dl.sig'
+        self.path_asc_philipp = os.path.abspath(os.path.join(DirTemp, 'philipp.asc'))
+        self.path_youtube_dl_sig = os.path.abspath(os.path.join(DirTemp, 'youtube-dl.sig'))
 
-class YoutubeDlg(PrintText):
+        if platform.system() == 'Linux':
+            self.url_youtube_dl = 'https://yt-dl.org/downloads/latest/youtube-dl'
+            self.path_youtube_dl_file = os.path.abspath(os.path.join(DirDownloads, 'youtube-dl'))
+        elif platform.system() == 'Windows':
+            self.url_youtube_dl = 'https://yt-dl.org/downloads/2020.09.06/youtube-dl.exe'
+            self.path_youtube_dl_file = os.path.abspath(os.path.join(DirDownloads, 'youtube-dl.exe'))
+
+    def linux(self):
+        run_download(self.url_asc_philipp, self.path_asc_philipp)
+        run_download(self.url_sig, self.path_youtube_dl_sig)
+        #gpg_import(self.path_asc_philipp)
+        #gpg_verify(self.path_youtube_dl_file, self.path_youtube_dl_sig)
+        #gpg_list()
+
+    def install(self):
+        self.msg('Instalando ... youtube-dl')
+        self.red('Falta código aqui...')
+        return
+        if platform.system() == 'Linux':
+            self.linux()
+
+
+class YoutubeDlGui(PrintText):
     def __init__(self):
         self.URL = 'https://github.com/MrS0m30n3/youtube-dl-gui/archive/master.zip'
         
