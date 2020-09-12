@@ -17,6 +17,7 @@ import shutil
 import platform
 import urllib.request
 import hashlib
+import gnupg
 from pathlib import Path
 from getpass import getuser
 from zipfile import ZipFile, is_zipfile
@@ -131,6 +132,7 @@ if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
     DirTemp = os.path.abspath(os.path.join('/tmp', app_name, getuser()))
     DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
     DirGitclone = os.path.abspath(os.path.join(DirTemp, 'gitclone'))
+    DirGpg = os.path.abspath(os.path.join(DirHome, '.gnupg'))
 
     list_dirs = [
         DirHome,
@@ -142,6 +144,7 @@ if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
         DirUnpack,
         DirGitclone,
         DirDesktopFiles,
+        DirGpg,
     ]
 
 elif platform.system() == 'Windows':
@@ -153,6 +156,7 @@ elif platform.system() == 'Windows':
     DirTemp = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name, 'temp'))
     DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
     DirGitclone = os.path.abspath(os.path.join(DirTemp, 'gitclone'))
+    DirGpg = os.path.abspath(os.path.join(DirHome, '.gnupg'))
 
     list_dirs = [
         DirHome,
@@ -163,6 +167,7 @@ elif platform.system() == 'Windows':
         DirTemp,
         DirUnpack,
         DirGitclone,
+        DirGpg,
     ]
 
 def mkdir(path):
@@ -228,6 +233,11 @@ def get_links(url):
 
 
 def sha256(file, sum):
+    '''
+    Função que recebe um arquivo e uma hash em forma de string (respectivamente) e gera
+    a hash do arquivo (sha256sum) para comparar com o valor passado no argumento. Se os
+    valores forem iguais, a função irá retornar True, se não irá retornar False.
+    '''
     print(f'Gerando hash do arquivo ... {file}')
     f = open(file, 'rb')
     h = hashlib.sha256()
@@ -242,6 +252,40 @@ def sha256(file, sum):
         print('FALHA')
         return False
 
+def gpg_import(key_file, url_key=None):
+    '''
+    https://docs.red-dove.com/python-gnupg/#importing-and-receiving-keys
+    https://gist.github.com/ryantuck/56c5aaa8f9124422ac964629f4c8deb0
+    https://www.programcreek.com/python/example/82300/gnupg.GPG
+
+    pip3 install python-gnupg --user
+    '''
+    if url_key != None:
+        print(f'Baixando ... {url_key}', end=' ')
+        try:
+            urllib.request.urlretrieve(url_key, key_file)
+        except Exception as err:
+            print('\n', err)
+            return False
+        else:
+            print('OK')
+
+    with open(key_file) as f:
+        key_data = f.read()
+
+    print(f'Importando ... {key_file}')  
+    gpg = gnupg.GPG(gnupghome=DirGpg)  
+    import_result = gpg.import_keys(key_data)
+    for k in import_result.results:
+        print(k)
+
+def gpg_verify(file, path_to_signature_file):
+   
+    gpg = gnupg.GPG(gnupghome=DirGpg)
+    with open(path_to_signature_file, 'rb') as f:
+        verified = gpg.verify_file(f, path_to_signature_file)
+        print(f'{file} ... {verified.status}')
+    
 def check_gpg(sig_file, file):
     if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
         print(f'gpg: verificando arquivo ... {file}', end=' ')
@@ -357,6 +401,22 @@ def gitclone(repo):
 
     os.system(f'git clone {repo}')
 
+
+def youtube_dl():
+    print('Instalando: youtube-dl')
+    url_asc_philipp='https://phihag.de/keys/A4826A18.asc'
+    url_ytdl_file='https://yt-dl.org/downloads/latest/youtube-dl'
+    url_sig='https://yt-dl.org/downloads/latest/youtube-dl.sig'
+    
+    path_asc = f'{DirTemp}/philipp.asc'
+    path_sig = f'{DirTemp}/youtube-dl.sig'
+    path_ytdl = f'{DirDownloads}/youtube-dl-teste'
+
+    run_download('https://yt-dl.org/downloads/latest/youtube-dl', path_ytdl)
+    run_download('https://yt-dl.org/downloads/latest/youtube-dl.sig', path_sig)
+    #gpg_import(path_asc, 'https://phihag.de/keys/A4826A18.asc')
+    out = gpg_verify(path_ytdl, path_sig)
+    print(out)
 
 #-----------------------------------------------------------#
 # Acessórios

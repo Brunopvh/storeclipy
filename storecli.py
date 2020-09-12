@@ -7,7 +7,7 @@ import re
 import argparse
 import platform 
 
-__version__ = '2020-09-10'
+__version__ = '2020-09-11'
 
 # Diretório onde o terminal está aberto.
 dir_run = os.getcwd()    
@@ -62,7 +62,8 @@ parser.add_argument(
     
 parser.add_argument(
     '-i', '--install', 
-    action='store', 
+    action='store',
+    nargs='*', 
     dest='pkg_for_install',
     type=str,
     help='Instalar um pacote'
@@ -125,7 +126,7 @@ apps_preferences = (
     'papirus',
 )
 
-if args.list_all_apps:
+if args.list_all_apps: # Listar os aplicativos disponiveis para instalação.
     print()
     print(' Acessorios:')
     for app in apps_acessory:
@@ -156,55 +157,38 @@ if args.list_all_apps:
     for app in apps_preferences:
         print('   ', app)
 
-elif args.pkg_for_download:         # Realizar somente download do programa informado.
-    if not args.dir_download:
-        PrintText().red('Você precisa informar um diretório para baixar os arquivos em --dir')
-        exit()
-
-    if os.path.isdir(args.dir_download) == False:
-        PrintText().red(f'O diretório informado não existe: {args.dir_download}')
-        exit()
-
-    if args.pkg_for_download == 'fluxion':
-        DownloadOnlyFiles(args.dir_download).fluxion()
-    elif args.pkg_for_download == 'theharvester':
-        DownloadOnlyFiles(args.dir_download).theHarvester()
-    elif args.pkg_for_download == 'searx':
-        DownloadOnlyFiles(args.dir_download).searx()
-    elif args.pkg_for_download == 'wifiphisher':
-        DownloadOnlyFiles(args.dir_download).wifiphisher()
-        
-
 elif args.pkg_for_install:          # Instalar um programa
-
-    if args.pkg_for_install == 'etcher':
-        Etcher().install()
-    elif args.pkg_for_install == 'google-chrome':
-        Browser().google_chrome()
-    elif args.pkg_for_install == 'java':
-        Java().install()
-    elif args.pkg_for_install == 'intellij-idea':
-        Idea().install()
-    elif args.pkg_for_install == 'pycharm':
-        Pycharm().install()
-    elif args.pkg_for_install == 'papirus':
-        Papirus().install()
-    elif args.pkg_for_install == 'searx':
-        RunInstaller().searx()
-    elif args.pkg_for_install == 'fontes-ms':
-        MsFonts().install()
-    elif args.pkg_for_install == 'torbrowser':
-        Browser().torbrowser()
-    elif args.pkg_for_install == 'theharvester':
-        RunInstaller().theHarvester()
-    elif args.pkg_for_install == 'youtube-dl-gui':
-        YoutubeDlg().install()
-    elif args.pkg_for_install == 'veracrypt':
-        Veracrypt().install()
-    elif args.pkg_for_install == 'wine':
-        Wine().install()
-    else:
-        print(f'Programa indisponível: {args.pkg_for_install}')
+	for pkg in args.pkg_for_install:
+	    if pkg == 'etcher':
+	        Etcher().install()
+	    elif pkg == 'veracrypt':
+	        Veracrypt().install()
+	    elif pkg == 'google-chrome':
+	        Browser().google_chrome()
+	    elif pkg == 'java':
+	        Java().install()
+	    elif pkg == 'intellij-idea':
+	        Idea().install()
+	    elif pkg == 'pycharm':
+	        Pycharm().install()
+	    elif pkg == 'papirus':
+	        Papirus().install()
+	    elif pkg == 'searx':
+	        RunInstaller().searx()
+	    elif pkg == 'fontes-ms':
+	        MsFonts().install()
+	    elif pkg == 'torbrowser':
+	        Browser().torbrowser()
+	    elif pkg == 'theharvester':
+	        RunInstaller().theHarvester()
+	    elif pkg == 'youtube-dl-gui':
+	        YoutubeDlg().install()
+	    elif pkg == 'youtube-dl':
+	        youtube_dl()
+	    elif pkg == 'wine':
+	        Wine().install()
+	    else:
+	        print(f'Programa indisponível: {pkg}')
 
 elif args.pkg_for_remove:          # Desinstalar um programa
     if args.pkg_for_remove == 'etcher':
