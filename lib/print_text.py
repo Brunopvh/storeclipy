@@ -4,10 +4,10 @@
 import os
 import platform
 
-if platform.system() == 'Windows':
+try:
 	columns = os.get_terminal_size()[0]
-else:
-	columns = os.get_terminal_size(0)[0]
+except:
+	columns = int(40)
 
 space_line = ('-' * columns)
 
@@ -17,7 +17,6 @@ CGreen = '\033[0;32m'
 CYellow = '\033[0;33m'
 CBlue = '\033[0;34m'
 CWhite = '\033[0;37m'
-
 
 # Strong
 CSRed = '\033[1;31m'
@@ -45,7 +44,6 @@ CBWhite = '\033[5;37m'
 
 # Reset
 CReset = '\033[0m'
-
 
 class PrintText:
 	def __init__(self):

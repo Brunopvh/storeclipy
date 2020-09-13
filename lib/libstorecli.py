@@ -17,7 +17,6 @@ import shutil
 import platform
 import urllib.request
 import hashlib
-
 from pathlib import Path
 from getpass import getuser
 from zipfile import ZipFile, is_zipfile
@@ -25,93 +24,23 @@ from time import sleep
 from zipfile import ZipFile, is_zipfile
 
 # Local libs
+from lib.print_text import PrintText
 from lib.downloader import *
-from lib.gpg_v import *
+from lib.gpglib import *
 
 if platform.system() != 'Windows':
-    # Local libs para Linux/FreeBSD.
+    # módulos locais para Linux/FreeBSD.
     from lib.apt_get import AptGet
     from lib.dpkg import Dpkg 
     from lib.pacman import Pacman
     from lib.pkg import Pkg
     from lib.os_release import ReleaseInfo
 
-
 try:
     from bs4 import BeautifulSoup
 except Exception as erro:
     print(erro, ' => execute: pip3 install bs4 --user')
     sys.exit()
-
-
-columns = os.get_terminal_size()[0]
-space_line = ('-' * columns)
-
-# Default
-CRed = '\033[0;31m'
-CGreen = '\033[0;32m'
-CYellow = '\033[0;33m'
-CBlue = '\033[0;34m'
-CWhite = '\033[0;37m'
-
-# Strong
-CSRed = '\033[1;31m'
-CSGreen = '\033[1;32m'
-CSYellow = '\033[1;33m'
-CSBlue = '\033[1;34m'
-CSWhite = '\033[1;37m'
-
-# Dark
-CDRed = '\033[2;31m'
-CDGreen = '\033[2;32m'
-CDYellow = '\033[2;33m'
-CDBlue = '\033[2;34m'
-CDWhite = '\033[2;37m'
-
-# Blinking text
-CBRed = '\033[5;31m'
-CBGreen = '\033[5;32m'
-CBYellow = '\033[5;33m'
-CBBlue = '\033[5;34m'
-CBWhite = '\033[5;37m'
-
-# Reset
-CReset = '\033[0m'
-
-class PrintText:
-    '''
-    Use: class(PrintText)
-         self.red("text") ; self.yellow("text") ...
-    '''
-    def __init__(self):
-        pass
-
-    def red(self, text=''):
-        print(f'{CRed}[!] {text}{CReset}')
-
-    def green(self, text=''):
-        print(f'{CGreen}{text}{CReset}')
-
-    def yellow(self, text=''):
-        print(f'{CYellow}{text}{CReset}')
-
-    def blue(self, text=''):
-        print(f'{CBlue}{text}{CReset}')
-
-    def white(self, text=''):
-        print(f'{CWhite}{text}{CReset}') 
-        
-    def msg(self, text=''):
-        self.line()
-        print(text.center(columns))
-        self.line()
-    
-    def line(self, char=None):
-        if char == None:
-            print('=' * columns)
-        else:
-            print(char * columns)
-
 
 app_name = 'storecli'
 
@@ -253,22 +182,6 @@ def sha256(file, sum):
     else:
         print('FALHA')
         return False
-
-    
-def check_gpg(sig_file, file):
-    if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
-        print(f'gpg: verificando arquivo ... {file}', end=' ')
-        out = subprocess.getstatusoutput(f'gpg --verify {sig_file} {file}')
-        if out[0] == 0:
-            print('OK')
-            return True
-        else:
-            print('')
-            PrintText().red(out[1])
-            return False
-    else:
-        return False
-
 
 #-----------------------------------------------------------#
 # Descompressão de arquivos.
@@ -431,8 +344,13 @@ class Etcher(PrintText):
 class Veracrypt(PrintText):
     def __init__(self):
         self.URL = 'https://www.veracrypt.fr/en/Downloads.html'
-        self.veracrypt_sha256sum_txt = f'{DirTemp}/veracrypt-sha256.txt'
-        self.veracrypt_sha256sum_sig = f'{DirTemp}veracrypt-sha256.txt.sig'
+        self.url_veracrypt_asc = 'https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc'
+        self.url_veracrypt_sig = ''
+        self.url_veracrypt_package = '' # Cada método irá determinar sua propria url de download.
+        
+        self.path_veracrypt_asc = os.path.abspath(os.path.join(DirTemp, 'VeraCrypt_PGP_public_key.asc'))
+        self.path_veracrypt_sig = '' # Cada métod definirá no path deste arquivo.
+        self.path_veracrypt_package = ''
 
     def veracrypt_urls(self):
         '''
@@ -445,32 +363,34 @@ class Veracrypt(PrintText):
         urls = self.veracrypt_urls()
         for URL in urls:
             if (URL[-4:] == '.bz2') and (not 'freebsd' in URL) and ('setup' in URL) and (not 'legacy' in URL):
-                url_veracrypt_linux = URL
-                url_veracrypt_linux_sig = f'{URL}.sig'
+                self.url_veracrypt_package = URL
+                self.url_veracrypt_sig = f'{URL}.sig'
                 break
         
-        # Definir o camiho completo do arquivo a ser baixado
-        path_veracrypt_tarfile = '{}/{}'.format(DirDownloads, os.path.basename(url_veracrypt_linux))
-        path_veracrypt_tarfile_sig = f'{path_veracrypt_tarfile}.sig'
+        # Definir o camiho completo dos arquivos a serem baixados.
+        name_tarfile = os.path.basename(self.url_veracrypt_package)
+        self.path_veracrypt_package = os.path.abspath(os.path.join(DirDownloads, name_tarfile))
+        self.path_veracrypt_sig = f'{self.path_veracrypt_package}.sig'
         
-        run_download(url_veracrypt_linux, path_veracrypt_tarfile)
-        run_download(url_veracrypt_linux_sig, path_veracrypt_tarfile_sig)
-        
-        self.yellow('Importando key veracrypt')
-        os.system('curl -s https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc | gpg --import - 1> /dev/null 2>&1')
+        run_download(self.url_veracrypt_package, self.path_veracrypt_package)
+        run_download(self.url_veracrypt_sig, self.path_veracrypt_sig)
+        gpg_import(self.path_veracrypt_asc, self.url_veracrypt_asc)
 
-        # Verificar a intergridade do arquivo ".txt" que contém as hashs 
-        if check_gpg(path_veracrypt_tarfile_sig, path_veracrypt_tarfile) != True:
-            self.red(f'Arquivo não confiavel: {path_veracrypt_tarfile}')
+        # Verificar a intergridade do pacote de instalação. 
+        if gpg_verify(self.path_veracrypt_sig, self.path_veracrypt_package) != True:
+            self.red(f'Arquivo não confiavel: {self.path_veracrypt_package}')
             return False
         
-        Unpack().tar(path_veracrypt_tarfile)
+        Unpack().tar(self.path_veracrypt_package)
         os.chdir(DirUnpack)
         files_in_dir = os.listdir(DirUnpack)
         for file in files_in_dir:
             if 'setup-gui-x64' in file:
-                print(f'Executando ... {DirUnpack}/{file}')
-                os.system(f'./{file}')
+                setup = file
+
+        print(f'Executando ... {setup}')
+        os.system(f'./{setup}')
+        os.system(f'sudo rm {setup}')
 
         if is_executable('veracrypt'):
             self.green('Veracrypt instalado com sucesso')
@@ -500,7 +420,7 @@ class Veracrypt(PrintText):
         self.yellow('Importando key veracrypt')
         os.system('curl -s https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc | gpg --import - 1> /dev/null 2>&1')
 
-        if check_gpg(path_veracrypt_tarfile_sig, path_veracrypt_tarfile) != True:
+        if gpg_check(path_veracrypt_tarfile_sig, path_veracrypt_tarfile) != True:
             self.red(f'Arquivo não confiavel: {path_veracrypt_tarfile}')
             return False
         
@@ -522,21 +442,53 @@ class Veracrypt(PrintText):
         else:
             self.red('Falha na instalação de Veracrypt')
             return False
-            
+    
+    def windows(self):
+        # Obter o link de download do pacote ".tar".
+        urls = self.veracrypt_urls()
+        for URL in urls:
+            if ('.exe' in URL) and (not 'Legacy' in URL) and (not 'Portable' in URL) and (URL[-4:] == '.exe'):
+                print(URL)
+                self.url_veracrypt_package = URL
+                self.url_veracrypt_sig = f'{URL}.sig'
+                break
+
+        # Definir o camiho completo dos arquivos a serem baixados.
+        name_tarfile = os.path.basename(self.url_veracrypt_package).replace('%', '_')
+        self.path_veracrypt_package = os.path.abspath(os.path.join(DirDownloads, name_tarfile))
+        self.path_veracrypt_sig = f'{self.path_veracrypt_package}.sig'
+        
+        run_download(self.url_veracrypt_package, self.path_veracrypt_package)
+        run_download(self.url_veracrypt_sig, self.path_veracrypt_sig)
+        gpg_import(self.path_veracrypt_asc, self.url_veracrypt_asc)
+
+        # Verificar a intergridade do pacote de instalação. 
+        if gpg_verify(self.path_veracrypt_sig, self.path_veracrypt_package) != True:
+            self.red(f'Arquivo não confiavel: {self.path_veracrypt_package}')
+            return False
+
+        os.system(f'wine {self.path_veracrypt_package}')
+
+
     def remove(self):
         self.msg('Desisntalando veracrypt')
-        os.system('sudo /usr/bin/veracrypt-uninstall.sh')
+        if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
+            os.system('sudo /usr/bin/veracrypt-uninstall.sh')
+        elif platform.system() == 'Windows':
+            pass
 
     def install(self):
         if is_executable('veracrypt'):
             self.yellow('veracrypt já está instalado use a opção "--remove" para desinstalar.')
-            return
+            #return
             
-        self.msg('Instalando veracrypt')
+        self.msg('Instalando veracrypt'); self.windows(); return
         if platform.system() == 'FreeBSD':
             self.freebsd()
         elif platform.system() == 'Linux':
             self.linux_tar()
+        elif platform.system() == 'Windows':
+            pass
 
 #-----------------------------------------------------------#
 # Desenvolvimento
@@ -912,14 +864,14 @@ class YoutubeDl(PrintText):
     def linux(self):
         run_download(self.url_asc_philipp, self.path_asc_philipp)
         run_download(self.url_sig, self.path_youtube_dl_sig)
-        #gpg_import(self.path_asc_philipp)
-        #gpg_verify(self.path_youtube_dl_file, self.path_youtube_dl_sig)
-        #gpg_list()
+        gpg_import(self.path_asc_philipp)
+        if (gpg_verify(self.path_youtube_dl_sig, self.path_youtube_dl_file) != True):
+            return False
+       
 
     def install(self):
         self.msg('Instalando ... youtube-dl')
-        self.red('Falta código aqui...')
-        return
+        
         if platform.system() == 'Linux':
             self.linux()
 
