@@ -7,7 +7,7 @@ import re
 import argparse
 import platform 
 
-__version__ = '2020-09-12'
+__version__ = '2020-09-13'
 
 # Diretório onde o terminal está aberto.
 dir_run = os.getcwd()    
@@ -32,16 +32,10 @@ from lib.print_text import PrintText
 from lib.libstorecli import *
 
 # root
-if os.geteuid() == int('0'):
-    PrintText().red('Usuário não pode ser o root saindo')
-    sys.exit('1')
-
-# Linux ou BSD
-sys_kernel = str(platform.system())
-if (sys_kernel != 'Linux') and (sys_kernel != 'FreeBSD'):
-    PrintText().red(f'Execute este program em sistemas Linux ou FreeBSD')
-    exit()
-
+if platform.system() != 'Windows':
+	if os.geteuid() == int('0'):
+	    PrintText().red('Usuário não pode ser o root saindo')
+	    sys.exit('1')
 
 parser = argparse.ArgumentParser(
             description='Instala programas em sistemas Linux e FreeBSD.'

@@ -5,7 +5,6 @@ import urllib.request
 import platform
 import lib.wget as wget
 
-
 class Downloader:
     def __init__(self, url, output_path):
         self.url = url
@@ -54,7 +53,6 @@ class Downloader:
         else:
             print(f'\033[KAguarde...', end='\r')
             
-
     def wget_download(self):
         if os.path.isfile(self.output_path):
             print(f'Arquivo encontrado ... {self.output_path}')
@@ -74,7 +72,6 @@ class Downloader:
         else:
             os.system(f'curl.exe -S -L {self.url} -o {self.output_path}')
   
-           
 def run_download(url, output_path):
     # info = urllib.request.urlopen(url)
     # length = int(info.getheader('content-length'))
@@ -85,12 +82,15 @@ def run_download(url, output_path):
         return
     
     print(f'Conectando ... {url}')
-    info = urllib.request.urlopen(url)
-    length = info.getheader('content-length')
-    if length:
-        Downloader(url, output_path).wget_download()
-    else:
+    if platform.system() == 'Windows':
         Downloader(url, output_path).curl_download()
+    else:
+        info = urllib.request.urlopen(url)
+        length = info.getheader('content-length')
+        if length:
+            Downloader(url, output_path).wget_download()
+        else:
+            Downloader(url, output_path).curl_download()
 
 
 

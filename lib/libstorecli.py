@@ -343,11 +343,11 @@ class Etcher(PrintText):
 
 class Veracrypt(PrintText):
     def __init__(self):
+        # Urls e arquivos.
         self.URL = 'https://www.veracrypt.fr/en/Downloads.html'
         self.url_veracrypt_asc = 'https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc'
         self.url_veracrypt_sig = ''
         self.url_veracrypt_package = '' # Cada método irá determinar sua propria url de download.
-        
         self.path_veracrypt_asc = os.path.abspath(os.path.join(DirTemp, 'VeraCrypt_PGP_public_key.asc'))
         self.path_veracrypt_sig = '' # Cada métod definirá no path deste arquivo.
         self.path_veracrypt_package = ''
@@ -391,7 +391,6 @@ class Veracrypt(PrintText):
         print(f'Executando ... {setup}')
         os.system(f'./{setup}')
         os.system(f'sudo rm {setup}')
-
         if is_executable('veracrypt'):
             self.green('Veracrypt instalado com sucesso')
             return True
@@ -444,22 +443,15 @@ class Veracrypt(PrintText):
             return False
     
     def windows(self):
-        # Obter o link de download do pacote ".tar".
-        urls = self.veracrypt_urls()
-        for URL in urls:
-            if ('.exe' in URL) and (not 'Legacy' in URL) and (not 'Portable' in URL) and (URL[-4:] == '.exe'):
-                print(URL)
-                self.url_veracrypt_package = URL
-                self.url_veracrypt_sig = f'{URL}.sig'
-                break
+        self.url_veracrypt_package = 'https://launchpad.net/veracrypt/trunk/1.24-update7/+download/VeraCrypt%20Setup%201.24-Update7.exe'
+        self.url_veracrypt_sig = f'{self.url_veracrypt_package}.sig'
 
         # Definir o camiho completo dos arquivos a serem baixados.
-        name_tarfile = os.path.basename(self.url_veracrypt_package).replace('%', '_')
-        self.path_veracrypt_package = os.path.abspath(os.path.join(DirDownloads, name_tarfile))
+        name_file = os.path.basename(self.url_veracrypt_package).replace('%', '')
+        self.path_veracrypt_package = os.path.abspath(os.path.join(DirDownloads, name_file))
         self.path_veracrypt_sig = f'{self.path_veracrypt_package}.sig'
-        
-        run_download(self.url_veracrypt_package, self.path_veracrypt_package)
-        run_download(self.url_veracrypt_sig, self.path_veracrypt_sig)
+        Downloader(self.url_veracrypt_package, self.path_veracrypt_package).curl_download()
+        Downloader(self.url_veracrypt_sig, self.path_veracrypt_sig).curl_download()
         gpg_import(self.path_veracrypt_asc, self.url_veracrypt_asc)
 
         # Verificar a intergridade do pacote de instalação. 
@@ -467,8 +459,7 @@ class Veracrypt(PrintText):
             self.red(f'Arquivo não confiavel: {self.path_veracrypt_package}')
             return False
 
-        os.system(f'wine {self.path_veracrypt_package}')
-
+        os.system(self.path_veracrypt_package)
 
     def remove(self):
         self.msg('Desisntalando veracrypt')
@@ -482,13 +473,13 @@ class Veracrypt(PrintText):
             self.yellow('veracrypt já está instalado use a opção "--remove" para desinstalar.')
             #return
             
-        self.msg('Instalando veracrypt'); self.windows(); return
+        self.msg('Instalando veracrypt')
         if platform.system() == 'FreeBSD':
             self.freebsd()
         elif platform.system() == 'Linux':
             self.linux_tar()
         elif platform.system() == 'Windows':
-            pass
+            self.windows()
 
 #-----------------------------------------------------------#
 # Desenvolvimento
