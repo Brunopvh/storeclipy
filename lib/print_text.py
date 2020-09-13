@@ -50,7 +50,7 @@ class PrintText:
 		pass
 
 	def red(self, text=''):
-		print(f'{CRed}[!] {text}{CReset}')
+		print(f'{CSRed}[!] {text}{CReset}')
 
 	def green(self, text=''):
 		print(f'{CGreen}{text}{CReset}')

@@ -27,7 +27,7 @@ else:
 DirGpg = os.path.abspath(os.path.join(DirHome, '.gnupg'))
 
 if platform.system() != 'Windows':
-    gpg = gnupg.GPG(gnupghome=DirGpg)
+    gpg = gnupg.GPG()
 
 def check_binary():
     if platform.system() == 'Windows':
@@ -82,7 +82,6 @@ def gpg_list():
     print(public_keys)
     print('private keys:')
     print(private_keys)
-
 
 def gpg_verify(path_to_signature_file, path_file):
     '''

@@ -6,13 +6,14 @@ import platform
 import lib.wget as wget
 
 class Downloader:
-    def __init__(self, url, output_path):
-        self.url = url
-        self.output_path = output_path
-        self.terminal_widh = os.get_terminal_size()[0]
+    def __init__(self, output_dir=os.getcwd()):
+        try:
+            self.terminal_widh = os.get_terminal_size()[0]
+        except:
+            self.terminal_widh = None
+        self.output_dir = output_dir
 
     def bar_custom(self, current, total, width=80):
-        # print('\033[K[>] Progresso: %d%% [%d / %d]MB ' % (progress, current, total), end='\r')
         if total > 1048576: # Converter bytes para MB
             current = current / 1048576
             total = total / 1048576
@@ -53,44 +54,31 @@ class Downloader:
         else:
             print(f'\033[KAguarde...', end='\r')
             
-    def wget_download(self):
-        if os.path.isfile(self.output_path):
-            print(f'Arquivo encontrado ... {self.output_path}')
+    def wget_download(self, url, output_path):
+        if os.path.isfile(output_path):
+            print(f'Arquivo encontrado ... {output_path}')
             return True
 
-        print(f'Destino ... {self.output_path}')
-        wget.download(self.url, self.output_path, bar=self.bar_custom)
-        print('')
-
-    def curl_download(self):
-        '''
-        Realizar downloads com a ferramenta 'curl'.
-        '''
-        print(f'Destino ... {self.output_path}')
-        if (platform.system() != 'Windows'):
-            os.system(f'curl -S -L {self.url} -o {self.output_path}')
-        else:
-            os.system(f'curl.exe -S -L {self.url} -o {self.output_path}')
-  
-def run_download(url, output_path):
-    # info = urllib.request.urlopen(url)
-    # length = int(info.getheader('content-length'))
-    # if length and (length != None):
-    
-    if os.path.isfile(output_path) == True:
-        print(f'Arquivo encontrado ... {output_path}')
-        return
-    
-    print(f'Conectando ... {url}')
-    if platform.system() == 'Windows':
-        Downloader(url, output_path).curl_download()
-    else:
+        os.chdir(self.output_dir)
+        print(f'Conectando ... {url}')
         info = urllib.request.urlopen(url)
         length = info.getheader('content-length')
-        if length:
-            Downloader(url, output_path).wget_download()
-        else:
-            Downloader(url, output_path).curl_download()
+        print(f'Destino ... {output_path}')
+        wget.download(url, output_path, bar=self.bar_custom)
+        print('')
+        
+    def curl_download(self, url, output_path):
+        if os.path.isfile(output_path):
+            print(f'Arquivo encontrado ... {output_path}')
+            return True
+
+        os.chdir(self.output_dir)
+        print(f'Conectando ... {url}')
+        if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
+            os.system(f'curl -S -L {url} -o {output_path}')
+        elif (platform.system() == 'Windows'):
+            os.system(f'curl.exe -S -L {url} -o {output_path}')
+
 
 
 

@@ -283,6 +283,10 @@ def gitclone(repo):
 
     os.system(f'git clone {repo}')
 
+wget_download = Downloader(DirDownloads).wget_download
+download = Downloader(DirDownloads).wget_download
+curl_download = download = Downloader(DirDownloads).curl_download	
+
 #-----------------------------------------------------------#
 # Acessórios
 #-----------------------------------------------------------#
@@ -294,11 +298,10 @@ class Etcher(PrintText):
         # https://github.com/balena-io/etcher/releases
         url_etcher_appimage = 'https://github.com/balena-io/etcher/releases/download/v1.5.99/balenaEtcher-1.5.99-x64.AppImage'
         url_etcher_deb = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
-
         name_etcher = os.path.basename(url_etcher_deb)
         path_etcher = os.path.abspath(os.path.join(DirDownloads, name_etcher))
 
-        run_download(url_etcher_deb, path_etcher)
+        wget_download(url_etcher_deb, path_etcher)
         Unpack().deb(path_etcher)
         os.chdir(DirUnpack)
         self.yellow(f'Descomprimindo ... {DirUnpack}/data.tar.bz2')
@@ -372,8 +375,8 @@ class Veracrypt(PrintText):
         self.path_veracrypt_package = os.path.abspath(os.path.join(DirDownloads, name_tarfile))
         self.path_veracrypt_sig = f'{self.path_veracrypt_package}.sig'
         
-        run_download(self.url_veracrypt_package, self.path_veracrypt_package)
-        run_download(self.url_veracrypt_sig, self.path_veracrypt_sig)
+        curl_download(self.url_veracrypt_package, self.path_veracrypt_package)
+        curl_download(self.url_veracrypt_sig, self.path_veracrypt_sig)
         gpg_import(self.path_veracrypt_asc, self.url_veracrypt_asc)
 
         # Verificar a intergridade do pacote de instalação. 
@@ -405,25 +408,28 @@ class Veracrypt(PrintText):
         urls = self.veracrypt_urls()
         for URL in urls:
             if (URL[-4:] == '.bz2') and ('freebsd' in URL) and ('setup' in URL) and (not 'legacy' in URL):
-                url_veracrypt_freebsd = URL
-                url_veracrypt_freebsd_sig = f'{URL}.sig'
+                self.url_veracrypt_package = URL
+                self.url_veracrypt_sig = f'{URL}.sig'
                 break
         
         # Definir o camiho completo do arquivo a ser baixado
-        path_veracrypt_tarfile = '{}/{}'.format(DirDownloads, os.path.basename(url_veracrypt_freebsd))
-        path_veracrypt_tarfile_sig = f'{path_veracrypt_tarfile}.sig'
+        name_tarfile = os.path.basename(self.url_veracrypt_package)
+        self.path_veracrypt_package = os.path.abspath(os.path.join(DirDownloads, name_tarfile))
+        self.path_veracrypt_sig = f'{self.path_veracrypt_package}.sig'
         
-        run_download(url_veracrypt_freebsd, path_veracrypt_tarfile)
-        run_download(url_veracrypt_freebsd_sig, path_veracrypt_tarfile_sig)
+        curl_download(self.url_veracrypt_package, self.path_veracrypt_package)
+        curl_download(self.url_veracrypt_sig, self.path_veracrypt_sig)
         
         self.yellow('Importando key veracrypt')
-        os.system('curl -s https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc | gpg --import - 1> /dev/null 2>&1')
+        #os.system('curl -s https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc | gpg --import - 1> /dev/null 2>&1')
+        gpg_import(self.path_veracrypt_asc, self.url_veracrypt_asc)
 
-        if gpg_check(path_veracrypt_tarfile_sig, path_veracrypt_tarfile) != True:
-            self.red(f'Arquivo não confiavel: {path_veracrypt_tarfile}')
+        # Verificar a intergridade do pacote de instalação. 
+        if gpg_verify(self.path_veracrypt_sig, self.path_veracrypt_package) != True:
+            self.red(f'Arquivo não confiavel: {self.path_veracrypt_package}')
             return False
         
-        Unpack().tar(path_veracrypt_tarfile)
+        Unpack().tar(self.path_veracrypt_package)
         os.chdir(DirUnpack)
         files_in_dir = os.listdir(DirUnpack)
         for file in files_in_dir:
@@ -450,8 +456,8 @@ class Veracrypt(PrintText):
         name_file = os.path.basename(self.url_veracrypt_package).replace('%', '')
         self.path_veracrypt_package = os.path.abspath(os.path.join(DirDownloads, name_file))
         self.path_veracrypt_sig = f'{self.path_veracrypt_package}.sig'
-        Downloader(self.url_veracrypt_package, self.path_veracrypt_package).curl_download()
-        Downloader(self.url_veracrypt_sig, self.path_veracrypt_sig).curl_download()
+        curl_download(self.url_veracrypt_package, self.path_veracrypt_package)
+        curl_download(self.url_veracrypt_sig, self.path_veracrypt_sig)
         gpg_import(self.path_veracrypt_asc, self.url_veracrypt_asc)
 
         # Verificar a intergridade do pacote de instalação. 
@@ -511,7 +517,7 @@ class Idea(PrintText):
         '''
         Instalação do idea community via pacote tar.
         '''
-        run_download(self.idea_url, self.idea_tar_file)
+       	curl_download(self.idea_url, self.idea_tar_file)
         if sha256(self.idea_tar_file, self.shasum) == False:
             return False
 
@@ -588,10 +594,9 @@ class Pycharm(PrintText):
             self.pycharm_pkg = os.path.abspath(os.path.join(DirDownloads, self.pycharm_name))
 
     def windows(self):
-        run_download(self.pycharm_url, self.pycharm_pkg)
+        curl_download(self.pycharm_url, self.pycharm_pkg)
         if sha256(self.pycharm_pkg, self.pycharm_shasum) != True:
             return False
-
         os.system(self.pycharm_pkg)
 
     def linux_tar(self):
@@ -599,7 +604,7 @@ class Pycharm(PrintText):
             print('Pycharm já instalado use "--remove pycharm" para desinstalar.')
             return
 
-        run_download(self.pycharm_url, self.pycharm_tar_file)
+        wget_download(self.pycharm_url, self.pycharm_tar_file)
         if sha256(self.pycharm_tar_file, self.pycharm_shasum) != True:
             return False
 
@@ -819,13 +824,10 @@ class Browser(PrintText):
             sleep(1)
 
     def torbrowser(self):
-        '''
-        Instalar torbrowser em qualquer distribuição Linux.
-        '''
         if platform.system() == 'Linux':
             url_torbrowser_installer = 'https://raw.github.com/Brunopvh/torbrowser/master/tor.sh'
             path_torbrowser_installer = os.path.abspath(os.path.join(DirDownloads, 'tor.sh'))
-            run_download(url_torbrowser_installer, path_torbrowser_installer)
+            curl_download(url_torbrowser_installer, path_torbrowser_installer)
             os.system(f'chmod +x {path_torbrowser_installer}')
             os.system(f'{path_torbrowser_installer} --install')
         else:
@@ -841,9 +843,9 @@ class YoutubeDl(PrintText):
         http://ytdl-org.github.io/youtube-dl/download.html
         '''
         self.url_asc_philipp = 'https://phihag.de/keys/A4826A18.asc'
-        self.url_sig = 'https://yt-dl.org/downloads/latest/youtube-dl.sig'
+        self.url_youtubedl_sig = 'https://yt-dl.org/downloads/latest/youtube-dl.sig'
         self.path_asc_philipp = os.path.abspath(os.path.join(DirTemp, 'philipp.asc'))
-        self.path_youtube_dl_sig = os.path.abspath(os.path.join(DirTemp, 'youtube-dl.sig'))
+        self.path_youtubedl_sig = os.path.abspath(os.path.join(DirTemp, 'youtube-dl.sig'))
 
         if platform.system() == 'Linux':
             self.url_youtube_dl = 'https://yt-dl.org/downloads/latest/youtube-dl'
@@ -853,19 +855,21 @@ class YoutubeDl(PrintText):
             self.path_youtube_dl_file = os.path.abspath(os.path.join(DirDownloads, 'youtube-dl.exe'))
 
     def linux(self):
-        run_download(self.url_asc_philipp, self.path_asc_philipp)
-        run_download(self.url_sig, self.path_youtube_dl_sig)
+        wget_download(self.url_asc_philipp, self.path_asc_philipp)
+        wget_download(self.url_youtubedl_sig, self.path_youtube_dl_sig)
         gpg_import(self.path_asc_philipp)
         if (gpg_verify(self.path_youtube_dl_sig, self.path_youtube_dl_file) != True):
             return False
-       
 
+        os.system(f'cp -n {self.path_youtube_dl_file} {DirBin}/youtube-dl')
+        os.system(f'chmod +x {DirBin}/youtube-dl')
+       
     def install(self):
         self.msg('Instalando ... youtube-dl')
-        
         if platform.system() == 'Linux':
             self.linux()
-
+        elif platform.system() == 'Windows':
+        	pass
 
 class YoutubeDlGui(PrintText):
     def __init__(self):
@@ -877,7 +881,7 @@ class YoutubeDlGui(PrintText):
             self.exec_ytdl = f'{DirBin}/youtube-dl-gui' 
             
     def get_ytdlg(self):
-        run_download(self.URL, self.path_file_zip)
+        wget_download(self.URL, self.path_file_zip)
         Unpack().zip(self.path_file_zip)
         
     def twodict(self):
@@ -903,7 +907,7 @@ class YoutubeDlGui(PrintText):
             sys.exit('1')
             
     def compile_ytdlg(self):
-        run_download(self.URL, self.path_file_zip)
+        wget_download(self.URL, self.path_file_zip)
         Unpack().zip(self.path_file_zip)
         
         self.yellow('Compilando youtube-dl-gui')
@@ -987,7 +991,7 @@ class Papirus(PrintText):
 
     def papirus_tar(self):
         self.msg('Instalando papirus')
-        run_download(self.papirus_url, self.papirus_tar_file)
+        wget_download(self.papirus_url, self.papirus_tar_file)
         Unpack().tar(self.papirus_tar_file)
         os.chdir(DirUnpack)
         os.system('mv papirus-* papirus')
@@ -1044,7 +1048,7 @@ class Wine(PrintText):
         path_installer_pywine = os.path.abspath(os.path.join(DirDownloads, 'wine-installer.sh'))
 
         if platform.system() == 'Linux':
-            run_download(url_installer_pywine, path_installer_pywine)
+            wget_download(url_installer_pywine, path_installer_pywine)
             os.system(f'chmod +x {path_installer_pywine}')
             self.yellow(f'Executando ... sudo sh {path_installer_pywine}')
             os.system(f'sudo sh {path_installer_pywine}')
