@@ -176,7 +176,7 @@ elif args.pkg_for_install:          # Instalar um programa
         elif pkg == 'youtube-dl':
             YoutubeDl().install()
         elif pkg == 'youtube-dl-gui':
-            YoutubeDlgGui().install()
+            YoutubeDlGui().install()
         elif pkg == 'youtube-dl':
             youtube_dl()
         elif pkg == 'wine':

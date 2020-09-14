@@ -900,11 +900,11 @@ class YoutubeDlGui(PrintText):
 			
 		os.chdir('twodict')
 		
-		if is_executable('python2.7') == 'True':
+		if is_executable('python2.7') == True:
 			os.system('sudo python2.7 setup.py install')
-		elif is_executable('python2') == 'True':
+		elif is_executable('python2') == True:
 			os.system('sudo python2 setup.py install')
-		elif is_executable('python') == 'True':
+		elif is_executable('python') == True:
 			os.system('sudo python setup.py install')
 		else:
 			self.red('Instale o python2 para prosseguir')
@@ -917,11 +917,11 @@ class YoutubeDlGui(PrintText):
 		self.yellow('Compilando youtube-dl-gui')
 		os.chdir(f'{DirUnpack}/youtube-dl-gui-master')
 		
-		if is_executable('python2.7') == 'True':
+		if is_executable('python2.7') == True:
 			os.system('sudo python2.7 setup.py install')
-		elif is_executable('python2') == 'True':
+		elif is_executable('python2') == True:
 			os.system('sudo python2 setup.py install')
-		elif is_executable('python') == 'True':
+		elif is_executable('python') == True:
 			os.system('sudo python setup.py install')
 		else:
 			self.red('Instale o python2 para prosseguir')
