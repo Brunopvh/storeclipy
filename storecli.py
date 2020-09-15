@@ -9,6 +9,10 @@ import platform
 
 __version__ = '2020-09-13'
 
+if platform.system() != 'Linux':
+    print('Seu sistema não é suportado. Execute apenas em sistemas Linux.')
+    sys.exit()
+
 # Diretório onde o terminal está aberto.
 dir_run = os.getcwd()    
 
@@ -32,10 +36,9 @@ from lib.print_text import PrintText
 from lib.libstorecli import *
 
 # root
-if platform.system() != 'Windows':
-	if os.geteuid() == int('0'):
-	    PrintText().red('Usuário não pode ser o root saindo')
-	    sys.exit('1')
+if os.geteuid() == int('0'):
+    PrintText().red('Usuário não pode ser o root saindo')
+    sys.exit('1')
 
 parser = argparse.ArgumentParser(
             description='Instala programas em sistemas Linux e FreeBSD.'

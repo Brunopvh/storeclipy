@@ -11,13 +11,12 @@ import urllib.request
 from subprocess import getstatusoutput
 from pathlib import Path
 
-if platform.system() != 'Windows':
-    try:
-        import gnupg
-    except Exception as err:
-        print(err, '==> Execute - pip3 install gnupg --user')
-        import sys
-        sys.exit()
+try:
+    import gnupg
+except Exception as err:
+    print(err, '==> Execute - pip3 install gnupg --user')
+    import sys
+    sys.exit()
 
 if platform.system() == 'FreeBSD':
     DirHome = os.path.abspath(os.path.join('/usr', Path.home()))
@@ -25,9 +24,7 @@ else:
     DirHome = os.path.abspath(os.path.join(Path.home()))
 
 DirGpg = os.path.abspath(os.path.join(DirHome, '.gnupg'))
-
-if platform.system() != 'Windows':
-    gpg = gnupg.GPG()
+gpg = gnupg.GPG()
 
 def check_binary():
     if platform.system() == 'Windows':
@@ -103,10 +100,6 @@ def gpg_verify(path_to_signature_file, path_file):
         else:
             print('FALHA')
             return False
-    
 
-#======================================================#
-# Gpg Windows
-#======================================================#
 
 

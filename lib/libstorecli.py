@@ -28,13 +28,12 @@ from lib.print_text import PrintText
 from lib.downloader import *
 from lib.gpglib import *
 
-if platform.system() != 'Windows':
-	# módulos locais para Linux/FreeBSD.
-	from lib.apt_get import AptGet
-	from lib.dpkg import Dpkg 
-	from lib.pacman import Pacman
-	from lib.pkg import Pkg
-	from lib.os_release import ReleaseInfo
+# módulos locais para Linux/FreeBSD.
+from lib.apt_get import AptGet
+from lib.dpkg import Dpkg 
+from lib.pacman import Pacman
+from lib.pkg import Pkg
+from lib.os_release import ReleaseInfo
 
 try:
 	from bs4 import BeautifulSoup
@@ -130,30 +129,21 @@ def rmdir(path):
 		shutil.rmtree(path)
 
 def is_executable(exec):
-	if platform.system() != 'Windows':
-		if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
-			return True
-		else:
-			return False
-
-
-def get_html(url):
-	try: 
-		print(f'Conectando ... {url}')
-		html = urllib.request.urlopen(url).read()
-	except Exception as erro:
-		print(f'Falha: {erro}')
-		sys.exit()
+	if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
+		return True
 	else:
-		return html
+		return False
 
 def get_links(url):
+	'''
+	Retornar uma lista com todos os links encontrados em um url.
+	'''
 	links = []
 	try: 
 		print(f'Conectando ... {url}')
 		html = urllib.request.urlopen(url).read()
-	except Exception as erro:
-		print(f'Falha: {erro}')
+	except Exception as err:
+		print(err)
 		sys.exit()
 	else:
 		soup = BeautifulSoup(html, 'html.parser')
@@ -161,7 +151,6 @@ def get_links(url):
 			link = LINK.get('href')
 			links.append(link)
 		return links
-
 
 def sha256(file, sum):
 	'''
@@ -292,17 +281,80 @@ curl_download = download = Downloader(DirDownloads).curl_download
 #-----------------------------------------------------------#
 class Etcher(PrintText):
 	def __init__(self):
-		pass
+		# https://github.com/balena-io/etcher/releases
+		self.desktop_file = '/usr/share/applications/balena-etcher-electron.desktop'
+		self.etcher_package = ''
+		self.etcher_url = ''
+		self.etcher_destination = '/opt/balenaEtcher'
+
+	def add_desktop_file(self):
+		
+		lines = [
+			'[Desktop Entry]',
+			'Name=balenaEtcher',
+			'Exec=/opt/balenaEtcher/balena-etcher-electron %U',
+			'Terminal=false',
+			'Type=Application',
+			'Icon=balena-etcher-electron',
+			'StartupWMClass=balenaEtcher',
+			'Comment=Flash OS images to SD cards and USB drives, safely and easily.',
+			'MimeType=x-scheme-handler/etcher;',
+			'Categories=Utility;',
+		]
+
+		os.chdir(DirTemp)
+		f = open('tmp.desktop', 'w')
+		for line in lines:
+			f.write(f'{line}\n')
+		f.seek(0)
+		f.close()
+
+		self.yellow(f'Configurando ... {self.desktop_file}')
+		os.system(f'sudo mv tmp.desktop {self.desktop_file}')
+		os.system(f'sudo chown root:root {self.desktop_file}')
+		os.system(f'sudo chmod 755 {self.desktop_file}')
+
+	def add_etcher_script_appimage(self):
+		lines = [
+			'#!/bin/bash',
+			'script_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"',
+			'if [[ $EUID -ne 0 ]] || [[ $ELECTRON_RUN_AS_NODE ]]; then',
+			'"${script_dir}"/balena-etcher-electron.AppImage "$@"',
+			'else',
+			'"${script_dir}"/balena-etcher-electron.AppImage "$@" --no-sandbox',
+			'fi',
+		]
+
+		os.chdir(DirTemp)
+		f = open('script.tmp', 'w')
+		for line in lines:
+			f.write(f'{line}\n')
+		f.seek(0)
+		f.close()
+
+		self.yellow(f'Configurando ... /opt/balenaEtcher/balena-etcher-electron')
+		os.system(f'sudo mv script.tmp /opt/balenaEtcher/balena-etcher-electron')
+		os.system(f'sudo chown root:root /opt/balenaEtcher/balena-etcher-electron')
+		os.system(f'sudo chmod a+x /opt/balenaEtcher/balena-etcher-electron')
+
+	def etcher_appimage(self):
+		self.etcher_url = 'https://github.com/balena-io/etcher/releases/download/v1.5.109/balenaEtcher-1.5.109-x64.AppImage'
+		name_etcher = os.path.basename(self.etcher_url)
+		self.etcher_package = os.path.abspath(os.path.join(DirDownloads, name_etcher))
+		curl_download(self.etcher_url, self.etcher_package)
+		self.yellow(f'Instalando em ... {self.etcher_destination}')
+		os.system(f'sudo mkdir -p {self.etcher_destination}')
+		os.system(f'sudo cp {self.etcher_package} /opt/balenaEtcher/balena-etcher-electron.AppImage')
+		self.add_etcher_script_appimage()
+		self.add_desktop_file()
 
 	def etcher_archlinux(self):
-		# https://github.com/balena-io/etcher/releases
-		url_etcher_appimage = 'https://github.com/balena-io/etcher/releases/download/v1.5.99/balenaEtcher-1.5.99-x64.AppImage'
-		url_etcher_deb = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
-		name_etcher = os.path.basename(url_etcher_deb)
-		path_etcher = os.path.abspath(os.path.join(DirDownloads, name_etcher))
+		self.etcher_url = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
+		name_etcher = os.path.basename(self.etcher_url)
+		self.etcher_package = os.path.abspath(os.path.join(DirDownloads, name_etcher))
 
-		wget_download(url_etcher_deb, path_etcher)
-		Unpack().deb(path_etcher)
+		wget_download(self.etcher_url, self.etcher_package)
+		Unpack().deb(self.etcher_package)
 		os.chdir(DirUnpack)
 		self.yellow(f'Descomprimindo ... {DirUnpack}/data.tar.bz2')
 		os.system('sudo tar -jxvf data.tar.bz2 -C / 1> /dev/null')
@@ -316,7 +368,6 @@ class Etcher(PrintText):
 			self.red('Falha na instalação de balenaEtcher.')
 
 	def etcher_debian(self):
-		# https://github.com/balena-io/etcher
 		self.yellow('Adicionando key e repositório')
 		os.system('sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com:443 --recv-keys 379CE192D401AB61')
 		os.system(f'echo "deb https://deb.etcher.io stable etcher" | sudo tee /etc/apt/sources.list.d/balena-etcher.list')
@@ -332,15 +383,17 @@ class Etcher(PrintText):
 	def remove(self):
 		if platform.system() == 'Linux':
 			if ReleaseInfo().info('ID') == 'arch':
-				rmdir('/opt/balenaEtcher')
+				rmdir(self.etcher_destination)
 				rmdir('/usr/local/bin/balena-etcher-electron')
+				rmdir(self.desktop_file)
 			elif ReleaseInfo().info('ID') == 'debian':
 				AptGet().remove('balena-etcher-electron')
 
 	def install(self):
 		if platform.system() == 'Linux':
 			if ReleaseInfo().info('ID') == 'arch':
-				self.etcher_archlinux()
+				#self.etcher_archlinux()
+				self.etcher_appimage()
 			elif ReleaseInfo().info('ID') == 'debian':
 				self.etcher_debian()
 
@@ -355,15 +408,9 @@ class Veracrypt(PrintText):
 		self.path_veracrypt_sig = '' # Cada métod definirá no path deste arquivo.
 		self.path_veracrypt_package = ''
 
-	def veracrypt_urls(self):
-		'''
-		Retornar todos os links encontrados na página de download do veracrypt.
-		'''
-		return get_links(self.URL)
-
 	def linux_tar(self):
 		# Obter o link de download do pacote ".tar".
-		urls = self.veracrypt_urls()
+		urls = get_links(self.URL)
 		for URL in urls:
 			if (URL[-4:] == '.bz2') and (not 'freebsd' in URL) and ('setup' in URL) and (not 'legacy' in URL):
 				self.url_veracrypt_package = URL
@@ -405,7 +452,7 @@ class Veracrypt(PrintText):
 		'''
 		Requerimentos: FUSE library and tools, device mapper tools
 		'''
-		urls = self.veracrypt_urls()
+		urls = get_links(self.URL)
 		for URL in urls:
 			if (URL[-4:] == '.bz2') and ('freebsd' in URL) and ('setup' in URL) and (not 'legacy' in URL):
 				self.url_veracrypt_package = URL
@@ -448,25 +495,6 @@ class Veracrypt(PrintText):
 			self.red('Falha na instalação de Veracrypt')
 			return False
 	
-	def windows(self):
-		self.url_veracrypt_package = 'https://launchpad.net/veracrypt/trunk/1.24-update7/+download/VeraCrypt%20Setup%201.24-Update7.exe'
-		self.url_veracrypt_sig = f'{self.url_veracrypt_package}.sig'
-
-		# Definir o camiho completo dos arquivos a serem baixados.
-		name_file = os.path.basename(self.url_veracrypt_package).replace('%', '')
-		self.path_veracrypt_package = os.path.abspath(os.path.join(DirDownloads, name_file))
-		self.path_veracrypt_sig = f'{self.path_veracrypt_package}.sig'
-		curl_download(self.url_veracrypt_package, self.path_veracrypt_package)
-		curl_download(self.url_veracrypt_sig, self.path_veracrypt_sig)
-		gpg_import(self.path_veracrypt_asc, self.url_veracrypt_asc)
-
-		# Verificar a intergridade do pacote de instalação. 
-		if gpg_verify(self.path_veracrypt_sig, self.path_veracrypt_package) != True:
-			self.red(f'Arquivo não confiavel: {self.path_veracrypt_package}')
-			return False
-
-		os.system(self.path_veracrypt_package)
-
 	def remove(self):
 		self.msg('Desisntalando veracrypt')
 		if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
@@ -477,15 +505,13 @@ class Veracrypt(PrintText):
 	def install(self):
 		if is_executable('veracrypt'):
 			self.yellow('veracrypt já está instalado use a opção "--remove" para desinstalar.')
-			#return
+			return
 			
 		self.msg('Instalando veracrypt')
 		if platform.system() == 'FreeBSD':
 			self.freebsd()
 		elif platform.system() == 'Linux':
 			self.linux_tar()
-		elif platform.system() == 'Windows':
-			self.windows()
 
 #-----------------------------------------------------------#
 # Desenvolvimento
@@ -504,16 +530,13 @@ class Java(PrintText):
 
 class Idea(PrintText):
 	def __init__(self):
-		if platform.system() == 'Linux':
-			self.idea_url = 'https://download-cf.jetbrains.com/idea/ideaIC-2020.2.1.tar.gz'
-			self.idea_tar_file = os.path.abspath(os.path.join(DirDownloads, os.path.basename(self.idea_url)))
-			self.shasum = 'a107f09ae789acc1324fdf8d22322ea4e4654656c742e4dee8a184e265f1b014'
-			self.idea_dir = os.path.abspath(os.path.join(DirBin, 'idea-IC'))
-			self.idea_script = os.path.abspath(os.path.join(DirBin, 'idea'))
-			self.idea_file_desktop = os.path.abspath(os.path.join(DirDesktopFiles, 'jetbrains-idea.desktop')) 
-			self.idea_png = os.path.abspath(os.path.join(DirIcons, 'idea.png'))
-		elif platform.system() == 'Windows':
-			pass
+		self.idea_url = 'https://download-cf.jetbrains.com/idea/ideaIC-2020.2.1.tar.gz'
+		self.idea_tar_file = os.path.abspath(os.path.join(DirDownloads, os.path.basename(self.idea_url)))
+		self.shasum = 'a107f09ae789acc1324fdf8d22322ea4e4654656c742e4dee8a184e265f1b014'
+		self.idea_dir = os.path.abspath(os.path.join(DirBin, 'idea-IC'))
+		self.idea_script = os.path.abspath(os.path.join(DirBin, 'idea'))
+		self.idea_file_desktop = os.path.abspath(os.path.join(DirDesktopFiles, 'jetbrains-idea.desktop')) 
+		self.idea_png = os.path.abspath(os.path.join(DirIcons, 'idea.png'))
 
 	def linux_tar(self):
 		'''

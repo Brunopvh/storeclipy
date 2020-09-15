@@ -28,12 +28,16 @@ class Downloader:
             progress = int(progress)
             show_progress_msg = '{}/{}{}'.format(current, total, und)
 
-            # Espaço total da janela do terminal menos o total de caracteres da variavel 'show_progress_msg'.
+            # Espaço total da janela do terminal menos o total de caracteres da variável 'show_progress_msg'.
             num_space_widh = int(self.terminal_widh - len(show_progress_msg))  
 
             # Dividir o numero inteiro da variavel 'num_space_widh' em 100 partes inteiras iguais que serão 
             # preenchidas com '=>(percentual%)'. 
             num_space_line = int(num_space_widh // 100) 
+
+            # Espaço vazio, diferença entre o tamanho total livre menos os espaços ocupados pela linha
+            # de progresso e as infomações na variável 'show_progress_msg'.
+            space = num_space_widh - (100 * num_space_line) - 1
 
             # Linha de progresso será exibida proporcionalmento ao percentual de download.
             progress_line = (num_space_line * progress)
@@ -41,7 +45,7 @@ class Downloader:
             # Espaço livre que será preenchido pela barra de progresso conforme o progresso do download.
             null_line = (num_space_widh - progress_line - (num_space_widh % 100) -1)
 
-            # Progresso será exibido da seguinte forma '[=>(percentual%)--------]'
+            # Linha de progresso será exibido da seguinte forma '[=>(percentual%)--------]'
             show_line = f'{("=" * progress_line)}>({progress}%){("-" * null_line)}'
 
             # Exibição formatada na tela do terminal.
@@ -61,10 +65,10 @@ class Downloader:
 
         os.chdir(self.output_dir)
         print(f'Conectando ... {url}')
-        info = urllib.request.urlopen(url)
-        length = info.getheader('content-length')
+        #info = urllib.request.urlopen(url)
+        #length = info.getheader('content-length')
         print(f'Destino ... {output_path}')
-        wget.download(url, output_path, bar=self.bar_custom)
+        wget.download(url, output_path)
         print('')
         
     def curl_download(self, url, output_path):
@@ -74,10 +78,8 @@ class Downloader:
 
         os.chdir(self.output_dir)
         print(f'Conectando ... {url}')
-        if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
-            os.system(f'curl -S -L {url} -o {output_path}')
-        elif (platform.system() == 'Windows'):
-            os.system(f'curl.exe -S -L {url} -o {output_path}')
+        os.system(f'curl -S -L {url} -o {output_path}')
+        
 
 
 
