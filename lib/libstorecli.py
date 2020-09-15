@@ -345,6 +345,8 @@ class Etcher(PrintText):
 		self.yellow(f'Instalando em ... {self.etcher_destination}')
 		os.system(f'sudo mkdir -p {self.etcher_destination}')
 		os.system(f'sudo cp {self.etcher_package} /opt/balenaEtcher/balena-etcher-electron.AppImage')
+		os.system('sudo chmod a+x /opt/balenaEtcher/balena-etcher-electron.AppImage')
+		os.system('sudo ln -sf /opt/balenaEtcher/balena-etcher-electron /usr/local/bin/balena-etcher-electron')
 		self.add_etcher_script_appimage()
 		self.add_desktop_file()
 
