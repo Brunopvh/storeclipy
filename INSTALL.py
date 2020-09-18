@@ -21,8 +21,8 @@ else:
 	print('Seu sistema não é suportado...')
 	sys.exit()
 
-dir_temp = '/tmp/space_storecli'
-#dir_temp = tempfile.mkdtemp()
+#dir_temp = '/tmp/space_storecli'
+dir_temp = tempfile.mkdtemp()
 if os.path.isdir(dir_temp) == False:
 	os.makedirs(dir_temp)
 
@@ -31,8 +31,7 @@ if os.path.isdir('/opt') == False:
 
 print(f'Navegando ... {dir_temp}') 
 os.chdir(dir_temp)
-
-print(f'Baixando ... {URL_STORECLIPY}', end=' ')
+print('Baixando ... {}'.format(URL_STORECLIPY), end=' ')
 try:
 	urllib.request.urlretrieve(URL_STORECLIPY, 'storeclipy.tar.gz')
 except:
@@ -57,7 +56,6 @@ except Exception as err:
 else:
 	print('OK')
 
-
 if os.path.exists('/opt/storeclipy-amd64') == True:
 	print('Removendo ... /opt/storeclipy-amd64')
 	os.system('rm -rf /opt/storeclipy-amd64')
@@ -70,7 +68,6 @@ os.system('chmod -R a+x /opt/storeclipy-amd64')
 print('Executando ... ln -sf /opt/storeclipy-amd64/storecli.py /usr/local/bin/storeclipy')
 os.system('ln -sf /opt/storeclipy-amd64/storecli.py /usr/local/bin/storeclipy')
 os.system('chmod a+x /usr/local/bin/storeclipy')
-
 
 if os.path.isdir(dir_temp) == True:
 	print(f'Removendo ... {dir_temp}')

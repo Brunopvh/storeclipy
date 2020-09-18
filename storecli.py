@@ -7,7 +7,7 @@ import re
 import argparse
 import platform 
 
-__version__ = '2020-09-13'
+__version__ = '2020-09-17'
 
 if platform.system() != 'Linux':
     print('Seu sistema não é suportado. Execute apenas em sistemas Linux.')
@@ -22,12 +22,8 @@ dir_root = os.path.dirname(os.path.realpath(__file__))
 # Diretórios contento módulos locais.
 dir_lib = os.path.abspath(os.path.join(dir_root, 'lib'))
 
-# Diretório local para a lib 'BeautifulSoup'.
-dir_bs4 = os.path.abspath(os.path.join(dir_root, 'bs4'))
-
 # Inserir o diretório do script no PATH do python - print(sys.path)                          
 sys.path.insert(0, dir_lib)
-sys.path.insert(0, dir_bs4)
 
 # Nome do script/app
 app_name = os.path.basename(__file__)
@@ -68,6 +64,7 @@ parser.add_argument(
 
 parser.add_argument(
     '-r', '--remove', 
+    nargs='*',
     action='store', 
     dest='pkg_for_remove',
     type=str,
@@ -188,16 +185,17 @@ elif args.pkg_for_install:          # Instalar um programa
             print(f'Programa indisponível: {pkg}')
 
 elif args.pkg_for_remove:          # Desinstalar um programa
-    if args.pkg_for_remove == 'etcher':
-        Etcher().remove()
-    elif args.pkg_for_remove == 'veracrypt':
-        Veracrypt().remove()
-    elif args.pkg_for_remove == 'pycharm':
-        Pycharm().remove()
-    elif args.pkg_for_remove == 'intellij-idea':
-        Idea().remove()
-    else:
-        print(f'[!] Não foi possivel remover {args.pkg_for_remove}')
+	for pkg in args.pkg_for_remove:
+	    if pkg == 'etcher':
+	        Etcher().remove()
+	    elif pkg == 'veracrypt':
+	        Veracrypt().remove()
+	    elif pkg == 'pycharm':
+	        Pycharm().remove()
+	    elif pkg == 'intellij-idea':
+	        Idea().remove()
+	    else:
+	        print(f'[!] Não foi possivel remover {pkg}')
         
         
         

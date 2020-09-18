@@ -16,6 +16,7 @@ import tarfile
 import shutil
 import platform
 import urllib.request
+import progress.bar
 import hashlib
 from pathlib import Path
 from getpass import getuser
@@ -25,7 +26,6 @@ from zipfile import ZipFile, is_zipfile
 
 # Local libs
 from lib.print_text import PrintText
-from lib.downloader import *
 from lib.gpglib import *
 
 # módulos locais para Linux/FreeBSD.
@@ -42,6 +42,10 @@ except Exception as erro:
 	sys.exit()
 
 app_name = 'storecli'
+CYellow = '\033[0;33m'
+CRed = '\033[0;31m'
+CReset = '\033[m'
+
 
 #==================================================#
 # Diretórios de trabalho
@@ -118,15 +122,16 @@ for DIR in list_dirs:
 	mkdir(DIR)
 
 def rmdir(path):
-	if platform.system() != 'Windows':
-		if not os.access(path, os.W_OK):
-			print(f'Autênticação nescessária para apagar ... {path}')
-			os.system(f'sudo rm -rf {path}')
-		else:
-			print(f'Apagando ... {path}')
-			os.system(f'rm -rf {path}')
-	elif platform.system() == 'Windows':
+	if not path:
+		return
+
+	try:
+		print(f'Apagando ... {path}')
 		shutil.rmtree(path)
+	except:
+		print(f'Autênticação nescessária para apagar ... {path}')
+		os.system(f'sudo rm -rf {path}')
+	
 
 def is_executable(exec):
 	if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
@@ -260,6 +265,7 @@ class Unpack(PrintText):
 
 # Clonar repositórios:
 def gitclone(repo):
+	print(f'Entrando no diretório ... {DirGitclone}')
 	os.chdir(DirGitclone)
 	dirs = os.listdir(DirGitclone)
 	for d in dirs:
@@ -272,9 +278,50 @@ def gitclone(repo):
 
 	os.system(f'git clone {repo}')
 
-wget_download = Downloader(DirDownloads).wget_download
-download = Downloader(DirDownloads).wget_download
-curl_download = download = Downloader(DirDownloads).curl_download	
+def wget_download(url, output_path):
+	print(f'Entrando no diretório ... {DirDownloads}')
+	os.chdir(DirDownloads)
+	if output_path:
+		if os.path.isfile(output_path) == True:
+			print(f'Arquivo encontrado ... {output_path}')
+			return True
+
+		PrintText().yellow(f'Conectando ... {url}')
+		try:
+			wget.download(url, output_path)
+		except Exception as err:
+			print('\n', err)
+			return False
+		else:
+			print(' OK')
+			return True
+	else:
+		print(f'Conectando ... {url}')
+		try:
+			wget.download(url)
+		except Exception as err:
+			print('\n', err)
+			return False
+		else:
+			print(' OK')
+			return True
+
+def curl_download(url, output_path):
+	print(f'Entrando no diretório ... {DirDownloads}')
+	os.chdir(DirDownloads)
+	if not is_executable('curl'):
+		PrintText().red('Instale a ferramenta "curl" para prosseguir.')
+		return False
+
+	if output_path:
+		if os.path.isfile(output_path) == True:
+			print(f'Arquivo encontrado ... {output_path}')
+			return True
+		PrintText().yellow(f'Baixando ... {output_path}')
+		os.system(f'curl -S -L -o {output_path} {url}')
+	else:
+		os.system(f'curl -S -L -O {url}')
+
 
 #-----------------------------------------------------------#
 # Acessórios
@@ -355,7 +402,7 @@ class Etcher(PrintText):
 		name_etcher = os.path.basename(self.etcher_url)
 		self.etcher_package = os.path.abspath(os.path.join(DirDownloads, name_etcher))
 
-		wget_download(self.etcher_url, self.etcher_package)
+		curl_download(self.etcher_url, self.etcher_package)
 		Unpack().deb(self.etcher_package)
 		os.chdir(DirUnpack)
 		self.yellow(f'Descomprimindo ... {DirUnpack}/data.tar.bz2')
@@ -407,7 +454,7 @@ class Veracrypt(PrintText):
 		self.url_veracrypt_sig = ''
 		self.url_veracrypt_package = '' # Cada método irá determinar sua propria url de download.
 		self.path_veracrypt_asc = os.path.abspath(os.path.join(DirTemp, 'VeraCrypt_PGP_public_key.asc'))
-		self.path_veracrypt_sig = '' # Cada métod definirá no path deste arquivo.
+		self.path_veracrypt_sig = '' # Cada método definirá no path deste arquivo.
 		self.path_veracrypt_package = ''
 
 	def linux_tar(self):
@@ -633,7 +680,7 @@ class Pycharm(PrintText):
 			print('Pycharm já instalado use "--remove pycharm" para desinstalar.')
 			return
 
-		wget_download(self.pycharm_url, self.pycharm_tar_file)
+		curl_download(self.pycharm_url, self.pycharm_tar_file)
 		if sha256(self.pycharm_tar_file, self.pycharm_shasum) != True:
 			return False
 
@@ -688,15 +735,8 @@ class Pycharm(PrintText):
 				self.red(f'Removendo .. {self.pycharm_png}')
 				os.system(f'rm -rf {self.pycharm_png}')
 
-	def install(self):
-		if platform.system() == 'Linux':
-			if ReleaseInfo().info('ID') == 'arch': # No archlinux pycharm pode ser instalado com o pacman.
-				#Pacman().install('pycharm-community-edition')
-				self.linux_tar()
-			else:
-				self.linux_tar()
-		elif platform.system() == 'Windows':
-			self.windows()
+	def install(self):		
+		self.linux_tar()	
 	 
 #-----------------------------------------------------------#
 # Escritório
@@ -884,13 +924,13 @@ class YoutubeDl(PrintText):
 			self.path_youtube_dl_file = os.path.abspath(os.path.join(DirDownloads, 'youtube-dl.exe'))
 
 	def linux(self):
-		wget_download(self.url_asc_philipp, self.path_asc_philipp)
-		wget_download(self.url_youtubedl_sig, self.path_youtube_dl_sig)
+		curl_download(self.url_asc_philipp, self.path_asc_philipp)
+		curl_download(self.url_youtubedl_sig, self.path_youtube_dl_sig)
 		gpg_import(self.path_asc_philipp)
 		if (gpg_verify(self.path_youtube_dl_sig, self.path_youtube_dl_file) != True):
 			return False
 
-		os.system(f'cp -n {self.path_youtube_dl_file} {DirBin}/youtube-dl')
+		os.system(f'cp {self.path_youtube_dl_file} {DirBin}/youtube-dl')
 		os.system(f'chmod +x {DirBin}/youtube-dl')
 	   
 	def install(self):
@@ -902,27 +942,16 @@ class YoutubeDl(PrintText):
 
 class YoutubeDlGui(PrintText):
 	def __init__(self):
+		# url do código fonte do youtube-dl-gui no github.
 		self.URL = 'https://github.com/MrS0m30n3/youtube-dl-gui/archive/master.zip'
-		
-		if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
-			self.path_file_zip = f'{DirDownloads}/youtube-dlg.zip'
-			self.destination_ytdlg = f'{DirBin}/youtube_dl_gui'
-			self.exec_ytdl = f'{DirBin}/youtube-dl-gui' 
-			
-	def get_ytdlg(self):
-		wget_download(self.URL, self.path_file_zip)
-		Unpack().zip(self.path_file_zip)
-		
+		self.path_file_zip = os.path.abspath(os.path.join(DirDownloads, 'youtube-dlg.zip'))
+		self.destination_ytdlg = os.path.abspath(os.path.join(DirBin, 'youtube_dl_gui'))
+		self.exec_ytdl = os.path.abspath(os.path.join(DirBin, 'youtube-dl-gui')) 
+				
 	def twodict(self):
-		if is_executable('git') == 'False':
-			self.red('Instale o git para prosseguir')
-			sys.exit('1')
-		
+		# Clonar 'python-twodict'
+		gitclone('https://github.com/MrS0m30n3/twodict.git')
 		self.yellow('Instalando python twodict')
-		os.chdir(DirTemp)
-		if os.path.isdir('twodict') == False:
-			os.system(f'git clone https://github.com/MrS0m30n3/twodict.git')
-			
 		os.chdir('twodict')
 		
 		if is_executable('python2.7') == True:
@@ -936,7 +965,7 @@ class YoutubeDlGui(PrintText):
 			sys.exit('1')
 			
 	def compile_ytdlg(self):
-		wget_download(self.URL, self.path_file_zip)
+		curl_download(self.URL, self.path_file_zip)
 		Unpack().zip(self.path_file_zip)
 		
 		self.yellow('Compilando youtube-dl-gui')
@@ -995,6 +1024,11 @@ class YoutubeDlGui(PrintText):
 		self.compile_ytdlg()
 		self.file_desktop_root()
 
+	def debian(self):
+		AptGet().install('python python-pip python-setuptools python-wxgtk3.0 python-twodict gettext')
+		self.compile_ytdlg()
+		self.file_desktop_root()
+
 	def install(self):
 		if is_executable('youtube-dl-gui'):
 			self.yellow('Youtube-dl-gui já está instalado')
@@ -1005,6 +1039,8 @@ class YoutubeDlGui(PrintText):
 		elif platform.system() == 'Linux':
 			if ReleaseInfo().info('ID') == 'arch':
 				self.archlinux()
+			elif ReleaseInfo().info('CODENAME') == 'buster':
+				self.debian()
 		
 #-----------------------------------------------------------#
 # Preferências
