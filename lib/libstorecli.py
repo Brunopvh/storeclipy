@@ -912,20 +912,17 @@ class YoutubeDl(PrintText):
 		http://ytdl-org.github.io/youtube-dl/download.html
 		'''
 		self.url_asc_philipp = 'https://phihag.de/keys/A4826A18.asc'
+		self.url_asc_sergey = 'https://dstftw.github.io/keys/18A9236D.asc'
 		self.url_youtubedl_sig = 'https://yt-dl.org/downloads/latest/youtube-dl.sig'
+		self.url_youtube_dl = 'https://yt-dl.org/downloads/latest/youtube-dl'
 		self.path_asc_philipp = os.path.abspath(os.path.join(DirTemp, 'philipp.asc'))
-		self.path_youtubedl_sig = os.path.abspath(os.path.join(DirTemp, 'youtube-dl.sig'))
-
-		if platform.system() == 'Linux':
-			self.url_youtube_dl = 'https://yt-dl.org/downloads/latest/youtube-dl'
-			self.path_youtube_dl_file = os.path.abspath(os.path.join(DirDownloads, 'youtube-dl'))
-		elif platform.system() == 'Windows':
-			self.url_youtube_dl = 'https://yt-dl.org/downloads/2020.09.06/youtube-dl.exe'
-			self.path_youtube_dl_file = os.path.abspath(os.path.join(DirDownloads, 'youtube-dl.exe'))
-
+		self.path_youtube_dl_sig = os.path.abspath(os.path.join(DirTemp, 'youtube-dl.sig'))
+		self.path_youtube_dl_file = os.path.abspath(os.path.join(DirDownloads, 'youtube-dl'))
+		
 	def linux(self):
 		curl_download(self.url_asc_philipp, self.path_asc_philipp)
 		curl_download(self.url_youtubedl_sig, self.path_youtube_dl_sig)
+		curl_download(self.url_youtube_dl, self.path_youtube_dl_file)
 		gpg_import(self.path_asc_philipp)
 		if (gpg_verify(self.path_youtube_dl_sig, self.path_youtube_dl_file) != True):
 			return False
@@ -935,11 +932,8 @@ class YoutubeDl(PrintText):
 	   
 	def install(self):
 		self.msg('Instalando ... youtube-dl')
-		if platform.system() == 'Linux':
-			self.linux()
-		elif platform.system() == 'Windows':
-			pass
-
+		self.linux()
+		
 class YoutubeDlGui(PrintText):
 	def __init__(self):
 		# url do código fonte do youtube-dl-gui no github.

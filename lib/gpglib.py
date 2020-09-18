@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
 import os
-import platform
 import urllib.request
 from subprocess import getstatusoutput
-from pathlib import Path
 
 def gpg_import(key_file, url_key=None):
     '''
