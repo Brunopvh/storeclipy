@@ -7,7 +7,7 @@ import re
 import argparse
 import platform 
 
-__version__ = '2020-09-17'
+__version__ = '2020-09-18'
 
 if platform.system() != 'Linux':
     print('Seu sistema não é suportado. Execute apenas em sistemas Linux.')

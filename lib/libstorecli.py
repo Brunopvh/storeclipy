@@ -12,17 +12,15 @@ REFERÊNCIAS
 import os, sys
 import subprocess
 import tempfile
-import tarfile
 import shutil
 import platform
 import urllib.request
-import progress.bar
 import hashlib
+import tarfile
 from pathlib import Path
 from getpass import getuser
 from zipfile import ZipFile, is_zipfile
 from time import sleep
-from zipfile import ZipFile, is_zipfile
 
 # Local libs
 from lib.print_text import PrintText
@@ -132,7 +130,6 @@ def rmdir(path):
 		print(f'Autênticação nescessária para apagar ... {path}')
 		os.system(f'sudo rm -rf {path}')
 	
-
 def is_executable(exec):
 	if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
 		return True
@@ -180,7 +177,6 @@ def sha256(file, sum):
 #-----------------------------------------------------------#
 # Descompressão de arquivos.
 #-----------------------------------------------------------#
-
 class Unpack(PrintText):
 	def __init__(self, destination=DirUnpack):
 		self.destination = destination
@@ -263,13 +259,14 @@ class Unpack(PrintText):
 			print('OK')
 
 
-# Clonar repositórios:
 def gitclone(repo):
+	'''Clonar repositórios.'''
 	print(f'Entrando no diretório ... {DirGitclone}')
 	os.chdir(DirGitclone)
 	dirs = os.listdir(DirGitclone)
+	dir_repo = os.path.basename(repo).replace('.git', '')
 	for d in dirs:
-		if os.path.exists(d) == True:
+		if os.path.exists(d) == dir_repo:
 			yes_no = input(f'Deseja apagar {d} [{CYellow}s{CReset}/{CRed}n{CReset}]?: ').strip().lower()
 			if (yes_no == 's') or (yes_no == 'y'):
 				rmdir(d)
@@ -362,6 +359,9 @@ class Etcher(PrintText):
 		os.system(f'sudo chmod 755 {self.desktop_file}')
 
 	def add_etcher_script_appimage(self):
+		'''
+		Método para criar o script que executa o pacote AppImage no sistema.
+		'''
 		lines = [
 			'#!/bin/bash',
 			'script_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"',
@@ -385,6 +385,9 @@ class Etcher(PrintText):
 		os.system(f'sudo chmod a+x /opt/balenaEtcher/balena-etcher-electron')
 
 	def etcher_appimage(self):
+		'''
+		Instala o etcher no formato AppImage em qualquer Linux.
+		'''
 		self.etcher_url = 'https://github.com/balena-io/etcher/releases/download/v1.5.109/balenaEtcher-1.5.109-x64.AppImage'
 		name_etcher = os.path.basename(self.etcher_url)
 		self.etcher_package = os.path.abspath(os.path.join(DirDownloads, name_etcher))
@@ -398,10 +401,12 @@ class Etcher(PrintText):
 		self.add_desktop_file()
 
 	def etcher_archlinux(self):
+		'''
+		Instalar o etcher no archlinux, apartir de um pacote ".deb"
+		'''
 		self.etcher_url = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
 		name_etcher = os.path.basename(self.etcher_url)
 		self.etcher_package = os.path.abspath(os.path.join(DirDownloads, name_etcher))
-
 		curl_download(self.etcher_url, self.etcher_package)
 		Unpack().deb(self.etcher_package)
 		os.chdir(DirUnpack)
@@ -410,11 +415,6 @@ class Etcher(PrintText):
 		print('Criando link ... /usr/local/bin/balena-etcher-electron')
 		os.system('sudo chmod a+x /opt/balenaEtcher')
 		os.system('sudo ln -sf /opt/balenaEtcher/balena-etcher-electron /usr/local/bin/balena-etcher-electron')
-
-		if is_executable('balena-etcher-electron') == True:
-			self.yellow('balenaEtcher instalado com sucesso.')
-		else:
-			self.red('Falha na instalação de balenaEtcher.')
 
 	def etcher_debian(self):
 		self.yellow('Adicionando key e repositório')
@@ -441,10 +441,14 @@ class Etcher(PrintText):
 	def install(self):
 		if platform.system() == 'Linux':
 			if ReleaseInfo().info('ID') == 'arch':
-				#self.etcher_archlinux()
-				self.etcher_appimage()
+				self.etcher_archlinux()
 			elif ReleaseInfo().info('ID') == 'debian':
 				self.etcher_debian()
+
+		if is_executable('balena-etcher-electron') == True:
+			self.yellow('balenaEtcher instalado com sucesso.')
+		else:
+			self.red('Falha na instalação de balenaEtcher.')
 
 class Veracrypt(PrintText):
 	def __init__(self):
@@ -496,71 +500,18 @@ class Veracrypt(PrintText):
 		else:
 			self.red('Falha na instalação de Veracrypt')
 			return False
-
-	def freebsd(self):
-		'''
-		Requerimentos: FUSE library and tools, device mapper tools
-		'''
-		urls = get_links(self.URL)
-		for URL in urls:
-			if (URL[-4:] == '.bz2') and ('freebsd' in URL) and ('setup' in URL) and (not 'legacy' in URL):
-				self.url_veracrypt_package = URL
-				self.url_veracrypt_sig = f'{URL}.sig'
-				break
-		
-		# Definir o camiho completo do arquivo a ser baixado
-		name_tarfile = os.path.basename(self.url_veracrypt_package)
-		self.path_veracrypt_package = os.path.abspath(os.path.join(DirDownloads, name_tarfile))
-		self.path_veracrypt_sig = f'{self.path_veracrypt_package}.sig'
-		
-		curl_download(self.url_veracrypt_package, self.path_veracrypt_package)
-		curl_download(self.url_veracrypt_sig, self.path_veracrypt_sig)
-		
-		self.yellow('Importando key veracrypt')
-		#os.system('curl -s https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc | gpg --import - 1> /dev/null 2>&1')
-		gpg_import(self.path_veracrypt_asc, self.url_veracrypt_asc)
-
-		# Verificar a intergridade do pacote de instalação. 
-		if gpg_verify(self.path_veracrypt_sig, self.path_veracrypt_package) != True:
-			self.red(f'Arquivo não confiavel: {self.path_veracrypt_package}')
-			return False
-		
-		Unpack().tar(self.path_veracrypt_package)
-		os.chdir(DirUnpack)
-		files_in_dir = os.listdir(DirUnpack)
-		for file in files_in_dir:
-			if 'setup-gui-x64' in file:
-				print(f'Executando ... {DirUnpack}/{file}')
-				os.system(f'./{file}')
-				
-		if os.path.isfile('/usr/share/applications/veracrypt.desktop'):
-			print('Copiando ... /usr/share/local/applications/veracrypt.desktop')
-			os.system('sudo cp /usr/share/applications/veracrypt.desktop /usr/local/share/applications/veracrypt.desktop')
-
-		if is_executable('veracrypt'):
-			self.green('Veracrypt instalado com sucesso')
-			return True
-		else:
-			self.red('Falha na instalação de Veracrypt')
-			return False
 	
 	def remove(self):
 		self.msg('Desisntalando veracrypt')
-		if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
-			os.system('sudo /usr/bin/veracrypt-uninstall.sh')
-		elif platform.system() == 'Windows':
-			pass
-
+		os.system('sudo /usr/bin/veracrypt-uninstall.sh')
+		
 	def install(self):
 		if is_executable('veracrypt'):
 			self.yellow('veracrypt já está instalado use a opção "--remove" para desinstalar.')
 			return
 			
 		self.msg('Instalando veracrypt')
-		if platform.system() == 'FreeBSD':
-			self.freebsd()
-		elif platform.system() == 'Linux':
-			self.linux_tar()
+		self.linux_tar()
 
 #-----------------------------------------------------------#
 # Desenvolvimento
@@ -634,41 +585,31 @@ class Idea(PrintText):
 		
 	def remove(self):
 		print('Desisntalando "idea IC community"')
-		if platform.system() == 'Linux':
-			if os.path.exists(self.idea_dir):
-				self.red(f'Removendo ... {self.idea_dir}')
-				os.system(f'rm -rf {self.idea_dir}')
+		if os.path.exists(self.idea_dir):
+			self.red(f'Removendo ... {self.idea_dir}')
+			os.system(f'rm -rf {self.idea_dir}')
 
-			if os.path.exists(self.idea_script):
-				self.red(f'Removendo ... {self.idea_script}')
-				os.system(f'rm -rf {self.idea_script}')
+		if os.path.exists(self.idea_script):
+			self.red(f'Removendo ... {self.idea_script}')
+			os.system(f'rm -rf {self.idea_script}')
 
-			if os.path.exists(self.idea_png):
-				self.red(f'Removendo ... {self.idea_png}')
-				os.system(f'rm -rf {self.idea_png}')
+		if os.path.exists(self.idea_png):
+			self.red(f'Removendo ... {self.idea_png}')
+			os.system(f'rm -rf {self.idea_png}')
 
 	def install(self):
-		if platform.system() == 'Linux':
-			self.linux_tar()
-		else:
-			pass
-
+		self.linux_tar()
+		
 class Pycharm(PrintText):
 	def __init__(self):
-		if platform.system() == 'Linux':
-			self.pycharm_shasum = '60b2eeea5237f536e5d46351fce604452ce6b16d037d2b7696ef37726e1ff78a'  
-			self.pycharm_url = 'https://download-cf.jetbrains.com/python/pycharm-community-2020.2.tar.gz'
-			self.pycharm_tar_file = os.path.abspath(os.path.join(DirDownloads, os.path.basename(self.pycharm_url)))
-			self.pycharm_dir = os.path.abspath(os.path.join(DirBin, 'pycharm-community'))
-			self.pycharm_script = os.path.abspath(os.path.join(DirBin, 'pycharm'))
-			self.pycharm_file_desktop = os.path.abspath(os.path.join(DirDesktopFiles, 'pycharm.desktop')) 
-			self.pycharm_png = os.path.abspath(os.path.join(DirIcons, 'pycharm.png'))
-		elif platform.system() == 'Windows':
-			self.pycharm_shasum = '65afa1b90f3ecc45946793c4c43a47a46dff2e1da0737ce602f5ee12bd946f1e'
-			self.pycharm_url = 'https://download-cf.jetbrains.com/python/pycharm-community-2020.2.exe'
-			self.pycharm_name = os.path.basename(self.pycharm_url)
-			self.pycharm_pkg = os.path.abspath(os.path.join(DirDownloads, self.pycharm_name))
-
+		self.pycharm_shasum = '60b2eeea5237f536e5d46351fce604452ce6b16d037d2b7696ef37726e1ff78a'  
+		self.pycharm_url = 'https://download-cf.jetbrains.com/python/pycharm-community-2020.2.tar.gz'
+		self.pycharm_tar_file = os.path.abspath(os.path.join(DirDownloads, os.path.basename(self.pycharm_url)))
+		self.pycharm_dir = os.path.abspath(os.path.join(DirBin, 'pycharm-community'))
+		self.pycharm_script = os.path.abspath(os.path.join(DirBin, 'pycharm'))
+		self.pycharm_file_desktop = os.path.abspath(os.path.join(DirDesktopFiles, 'pycharm.desktop')) 
+		self.pycharm_png = os.path.abspath(os.path.join(DirIcons, 'pycharm.png'))
+		
 	def windows(self):
 		curl_download(self.pycharm_url, self.pycharm_pkg)
 		if sha256(self.pycharm_pkg, self.pycharm_shasum) != True:
@@ -722,18 +663,17 @@ class Pycharm(PrintText):
 
 	def remove(self):
 		print('Desisntalando "pycharm community"')
-		if platform.system() == 'Linux':
-			if os.path.exists(self.pycharm_dir):
-				self.red(f'Removendo ... {self.pycharm_dir}')
-				os.system(f'rm -rf {self.pycharm_dir}')
+		if os.path.exists(self.pycharm_dir):
+			self.red(f'Removendo ... {self.pycharm_dir}')
+			os.system(f'rm -rf {self.pycharm_dir}')
 
-			if os.path.exists(self.pycharm_script):
-				self.red(f'Removendo ... {self.pycharm_script}')
-				os.system(f'rm -rf {self.pycharm_script}')
+		if os.path.exists(self.pycharm_script):
+			self.red(f'Removendo ... {self.pycharm_script}')
+			os.system(f'rm -rf {self.pycharm_script}')
 
-			if os.path.exists(self.pycharm_png):
-				self.red(f'Removendo .. {self.pycharm_png}')
-				os.system(f'rm -rf {self.pycharm_png}')
+		if os.path.exists(self.pycharm_png):
+			self.red(f'Removendo .. {self.pycharm_png}')
+			os.system(f'rm -rf {self.pycharm_png}')
 
 	def install(self):		
 		self.linux_tar()	
@@ -936,14 +876,12 @@ class YoutubeDl(PrintText):
 		
 class YoutubeDlGui(PrintText):
 	def __init__(self):
-		# url do código fonte do youtube-dl-gui no github.
 		self.URL = 'https://github.com/MrS0m30n3/youtube-dl-gui/archive/master.zip'
 		self.path_file_zip = os.path.abspath(os.path.join(DirDownloads, 'youtube-dlg.zip'))
 		self.destination_ytdlg = os.path.abspath(os.path.join(DirBin, 'youtube_dl_gui'))
 		self.exec_ytdl = os.path.abspath(os.path.join(DirBin, 'youtube-dl-gui')) 
 				
 	def twodict(self):
-		# Clonar 'python-twodict'
 		gitclone('https://github.com/MrS0m30n3/twodict.git')
 		self.yellow('Instalando python twodict')
 		os.chdir('twodict')
@@ -961,10 +899,8 @@ class YoutubeDlGui(PrintText):
 	def compile_ytdlg(self):
 		curl_download(self.URL, self.path_file_zip)
 		Unpack().zip(self.path_file_zip)
-		
-		self.yellow('Compilando youtube-dl-gui')
 		os.chdir(f'{DirUnpack}/youtube-dl-gui-master')
-		
+		self.yellow('Compilando youtube-dl-gui')
 		if is_executable('python2.7') == True:
 			os.system('sudo python2.7 setup.py install')
 		elif is_executable('python2') == True:
@@ -976,6 +912,9 @@ class YoutubeDlGui(PrintText):
 			sys.exit('1')
 	
 	def file_desktop_root(self):
+		'''
+		Cria o arquivo de configuração ".desktop" para o root.
+		'''
 		os.chdir(DirTemp)
 		if platform.system() == 'Linux':
 			f = '/usr/share/applications/youtube-dl-gui.desktop'
