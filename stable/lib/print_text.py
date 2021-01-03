@@ -5,11 +5,11 @@ import os
 import platform
 
 try:
-	columns = os.get_terminal_size()[0]
+	COLUMNS = os.get_terminal_size()[0]
 except:
-	columns = int(40)
+	COLUMNS = int(40)
 
-space_line = ('-' * columns)
+space_line = ('-' * COLUMNS)
 
 # Default
 CRed = '\033[0;31m'
@@ -67,14 +67,14 @@ class PrintText:
 		
 	def msg(self, text=''):
 		self.line()
-		print(text.center(columns))
+		print(text.center(COLUMNS))
 		self.line()
 	
 	def line(self, char=None):
 		if char == None:
-			print('-' * columns)
+			print('-' * COLUMNS)
 		else:
-			print(char * columns)
+			print(char * COLUMNS)
 
 	# Strong
 	def sred(text=''):

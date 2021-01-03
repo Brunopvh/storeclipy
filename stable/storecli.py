@@ -5,36 +5,36 @@ import os
 import sys
 import re
 import argparse
+import platform 
 
-__version__ = '2021-01-02'
+__version__ = '2020-09-18'
+
+if platform.system() != 'Linux':
+    print('Seu sistema não é suportado. Execute apenas em sistemas Linux.')
+    sys.exit()
 
 # Diretório onde o terminal está aberto.
 dir_run = os.getcwd()    
-_script = os.path.abspath(os.path.realpath(__file__))
-appname = 'storecli-python'
 
 # Endereço deste script no disco.
-dir_of_executable = os.path.dirname(_script) 
+dir_root = os.path.dirname(os.path.realpath(__file__)) 
 
 # Diretórios contento módulos locais.
-dir_local_libs = os.path.abspath(os.path.join(dir_of_executable, 'lib'))
+dir_lib = os.path.abspath(os.path.join(dir_root, 'lib'))
 
 # Inserir o diretório do script no PATH do python - print(sys.path)                          
-sys.path.insert(0, dir_local_libs)
+sys.path.insert(0, dir_lib)
 
-from lib import utils
+# Nome do script/app
+app_name = os.path.basename(__file__)
+
+from lib.print_text import PrintText  
+from lib.libstorecli import *
 
 # root
-if utils.KERNEL_TYPE == 'Linux':
-    if os.geteuid() == int('0'):
-        PrintText().red('Usuário não pode ser o root saindo')
-        sys.exit('1')
-
-
-user_config = utils.SetUserConfig(appname)
-user_config.config_bashrc()
-
-exit()
+if os.geteuid() == int('0'):
+    PrintText().red('Usuário não pode ser o root saindo')
+    sys.exit('1')
 
 parser = argparse.ArgumentParser(
             description='Instala programas em sistemas Linux e FreeBSD.'
