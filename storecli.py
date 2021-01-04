@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-import sys
-import re
+import os, sys
 import argparse
 
 __version__ = '2021-01-02'
 
-# Diretório onde o terminal está aberto.
 dir_run = os.getcwd()    
 _script = os.path.abspath(os.path.realpath(__file__))
-appname = 'storecli-python'
 
 # Endereço deste script no disco.
 dir_of_executable = os.path.dirname(_script) 
@@ -19,22 +15,18 @@ dir_of_executable = os.path.dirname(_script)
 # Diretórios contento módulos locais.
 dir_local_libs = os.path.abspath(os.path.join(dir_of_executable, 'lib'))
 
-# Inserir o diretório do script no PATH do python - print(sys.path)                          
+# Inserir o diretório ./lib no PATH do python - print(sys.path)                          
 sys.path.insert(0, dir_local_libs)
 
-from lib import utils
+# Módulos locais.
+from utils import KERNEL_TYPE
+import requeriments
 
 # root
-if utils.KERNEL_TYPE == 'Linux':
+if KERNEL_TYPE == 'Linux':
     if os.geteuid() == int('0'):
         PrintText().red('Usuário não pode ser o root saindo')
         sys.exit('1')
-
-
-user_config = utils.SetUserConfig(appname)
-user_config.config_bashrc()
-
-exit()
 
 parser = argparse.ArgumentParser(
             description='Instala programas em sistemas Linux e FreeBSD.'
@@ -120,6 +112,9 @@ apps_preferences = (
     'papirus',
 )
 
+requeriments.verify()
+
+exit()
 if args.list_all_apps: # Listar os aplicativos disponiveis para instalação.
     print()
     print(' Acessorios:')

@@ -8,10 +8,12 @@ import re
 import getpass
 import shutil
 import tempfile
+import tarfile
 import urllib.request
 import subprocess
-import progressbar
+import progressbar # Externo
 from pathlib import Path
+from bs4 import BeautifulSoup # Externo
 
 # Default
 CRed = '\033[0;31m'
@@ -29,6 +31,7 @@ CSBlue = '\033[1;34m'
 CSWhite = '\033[1;37m'
 
 KERNEL_TYPE = platform.system()
+appname = 'storecli-python'
 
 user_agents = [
 	'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0',
@@ -64,7 +67,7 @@ class PrintText:
 		print(f'{text}')
 
 	def red(self, text=''):
-		print(f'{CSRed}[!] {text}{CReset}')
+		print(f'{CRed}[!] {text}{CReset}')
 
 	def green(self, text=''):
 		print(f'{CGreen}{text}{CReset}')
@@ -77,40 +80,37 @@ class PrintText:
 
 	def white(self, text=''):
 		print(f'{CWhite}{text}{CReset}')
-		
-		
-	
 
 	# Strong
-	def sred(text=''):
+	def sred(self, text=''):
 		print(f'{CSRed}{text}{CReset}')
 
-	def sgreen(text=''):
+	def sgreen(self, text=''):
 		print(f'{CSGreen}{text}{CReset}')
 
-	def syellow(text=''):
+	def syellow(self, text=''):
 		print(f'{CSYellow}{text}{CReset}')
 
-	def sblue(text=''):
+	def sblue(self, text=''):
 		print(f'{CSBlue}{text}{CReset}')
 
-	def swhite(text=''):
+	def swhite(self, text=''):
 		print(f'{CSWhite}{text}{CReset}')
 
 	# Dark
-	def dred(text=''):
+	def dred(self, text=''):
 		print(f'{CDRed}{text}{CReset}')
 
-	def dgreen(text=''):
+	def dgreen(self, text=''):
 		print(f'{CDGreen}{text}{CReset}')
 
-	def dyellow(text=''):
+	def dyellow(self, text=''):
 		print(f'{CDYellow}{text}{CReset}')
 
-	def dblue(text=''):
+	def dblue(self, text=''):
 		print(f'{CDBlue}{text}{CReset}')
 
-	def dwhite(text=''):
+	def dwhite(self, text=''):
 		print(f'{CDWhite}{text}{CReset}')
 
 #=====================================================#
@@ -158,6 +158,16 @@ def rmdir(path):
 		return True
 
 #=====================================================#
+
+def is_executable(app_executable: str) -> bool:
+	OutPut = subprocess.getstatusoutput(f'command -v {app_executable}')
+	if OutPut[0] == int(0):
+		return True
+	else:
+		return False
+
+#=====================================================#
+
 class ReadFile(PrintText):
 	def __init__(self, file: str):
 		self.file = file
@@ -241,10 +251,14 @@ class ReadFile(PrintText):
 class SetUserConfig:
 
 	def __init__(self, appname, create_dirs=True):
-		self.dir_home = Path.home()
 		self.kernel_type = KERNEL_TYPE
 		self.appname = appname
-		if self.kernel_type == 'Linux':
+		if self.kernel_type == 'FreeBSD':
+			self.dir_home = os.path.abspath(os.path.join('/usr', Path.home()))
+		else:
+			self.dir_home = Path.home()
+
+		if (self.kernel_type == 'Linux') or (self.kernel_type == 'FreeBSD'):
 			self.dir_bin = os.path.abspath(os.path.join(self.dir_home, '.local', 'bin'))
 			self.dir_desktop_links = os.path.abspath(os.path.join(self.dir_home, '.local', 'share', 'applications'))
 			self.dir_cache = os.path.abspath(os.path.join(self.dir_home, '.cache', self.appname))
@@ -259,7 +273,7 @@ class SetUserConfig:
 				
 		self.file_temp = tempfile.NamedTemporaryFile(delete=True).name
 		# self.dir_temp = tempfile.TemporaryDirectory().name
-		if self.kernel_type == 'Linux':
+		if (self.kernel_type == 'Linux') or (self.kernel_type == 'FreeBSD'):
 			self.dir_temp = os.path.abspath(os.path.join('/tmp', f'{self.appname}-{getpass.getuser()}'))
 		elif self.kernel_type == 'Windows':
 			self.dir_temp = os.path.abspath(os.path.join('C:', f'{self.appname}-{getpass.getuser()}'))
@@ -324,6 +338,213 @@ class SetUserConfig:
 
 #=====================================================#
 
+class ReleaseInfo(object):
+	def __init__(self):
+		if os.path.isfile('/etc/os-release') == True:
+			release_file = '/etc/os-release'
+		elif os.path.isfile('/usr/lib/os-release') == True:
+			release_file = '/usr/lib/os-release'
+		elif os.path.isfile('/usr/local/etc/os-release') == True:
+		    release_file = '/usr/local/etc/os-release'
+		else:
+			print(f'{__class__}: arquivo release não encontrado.')
+			return False
+
+		self.obj_reslease_file = ReadFile(release_file) 
+		self.release_os_info = {}
+
+	def get_info(self):
+		'''
+		Obter as informações do sistema contidas no arquivo /etc/os-release.
+		'''
+		lines = self.obj_reslease_file.read_file()
+
+		for LINE in lines:
+			if LINE[0:12] == 'PRETTY_NAME=':
+				LINE = LINE.replace('PRETTY_NAME=', '')
+				self.release_os_info.update({'PRETTY_NAME': LINE})
+
+			elif LINE[0:5] == 'NAME=':
+				LINE = LINE.replace('NAME=', '')
+				self.release_os_info.update({'NAME': LINE})
+
+			elif LINE[0:11] == 'VERSION_ID=':
+				LINE = LINE.replace('VERSION_ID=', '')
+				self.release_os_info.update({'VERSION_ID': LINE})
+
+			elif LINE[0:8] == 'VERSION=':
+				LINE = LINE.replace('VERSION=', '')
+				self.release_os_info.update({'VERSION': LINE})
+
+			elif LINE[0:17] == 'VERSION_CODENAME=':
+				LINE = LINE.replace('VERSION_CODENAME=', '')
+				self.release_os_info.update({'VERSION_CODENAME': LINE})
+
+			elif LINE[0:3] == 'ID=':
+				LINE = LINE.replace('ID=', '')
+				self.release_os_info.update({'ID': LINE})
+
+		return self.release_os_info
+
+	def show_all(self):
+		'''
+		Mostra todas as informações do sitema contidas no arquivo /etc/os-release.
+		'''
+		self.release_os_info = self.get_info()
+		for key in self.release_os_info:
+			print(key, '=>', self.release_os_info[key])
+
+	def info(self, type_info: str) -> dict:
+		self.release_os_info = self.get_info()
+
+		if type_info == 'ALL':
+			return self.release_os_info
+
+		if type_info in self.release_os_info.keys():
+			return str(self.release_os_info[type_info]) 
+		else:
+			return {}
+
+#=====================================================#
+
+class Unpack(PrintText):
+	def __init__(self, destination=os.getcwd()):
+		super().__init__()
+		self.destination = destination
+
+	def check_destination(self):
+		if os.access(self.destination, os.W_OK) == True:
+			return True
+		else:
+			self.red(f'[!] Falha você não tem permissão de escrita em ... {self.destination}')
+			return False
+
+	def clear_dir_unpack(self):
+		if self.check_destination() != True:
+			return False
+		
+		os.chdir(self.destination)
+		files = os.listdir(self.destination)
+
+		for f in files:
+			rmdir(f)    
+
+	def tar(self, file):
+		# Verificar se o arquivo e do tipo tar
+		if not tarfile.is_tarfile(file):
+			self.red(f'O arquivo {file} NÃO é do tipo ".tar"')
+			return False
+			
+		self.clear_dir_unpack()
+		print(f'Descomprimindo ... {os.path.basename(file)}', end=' ')
+		os.chdir(self.destination)
+		try:
+			tar = tarfile.open(file)
+			tar.extractall()
+			tar.close()
+		except(KeyboardInterrupt):
+			print('Cancelado com Ctrl c')
+			sys.exit()
+		except Exception as err:
+			self.red('Erro')
+			self.red(err)
+			sys.exit(1)
+		else:
+			print('OK')
+
+	def zip(self, file):
+		# Verificar se o arquivo e do tipo zip
+		if not is_zipfile(file):
+			self.red(f'O arquivo {file} NÃO é do tipo (.zip)')
+			return
+
+		self.clear_dir_unpack()
+		print(f'Descomprimindo ... {os.path.basename(file)}', end= ' ')
+		os.chdir(self.destination)
+		try:
+			with ZipFile(file, 'r') as zip: 
+				# printing all the contents of the zip file 
+				# zip.printdir()  
+				zip.extractall()
+		except:
+			self.red('Falha')
+			sys.exit('1')
+		else:
+			print('OK')
+
+	def deb(self, file):
+		self.clear_dir_unpack()
+		os.chdir(self.destination)
+
+		print(f'Descomprimindo ... {os.path.basename(file)}', end=' ')
+		#os.system(f'ar -x {file} --output={DirUnpack} 1> /dev/null 2>&1')
+		if os.path.isfile('/etc/debian_version'):
+			out = subprocess.getstatusoutput('ar -x {}'.format(file))
+		else:
+			out = subprocess.getstatusoutput('ar -x {} --output={}'.format(file, self.destination))
+
+		if out[0] == int(0):
+			print('OK')
+		else:
+			self.red('Falha')
+			sys.exit(1)
+		
+
+#=====================================================#
+
+def get_html_lines(url: str) -> list:
+	'''
+	Baixa o html de uma página e retorna o contéudo em forma de lista.
+	'''
+	RegExp = re.compile(r'^http:|^ftp:|^https|^www')
+	if RegExp.findall(url) == []:
+		print(f'Erro: url inválida.')
+		return False
+
+	print(f'Conectando ... {url}')
+	try: 
+		req = urllib.request.Request(url, data=None, headers={'User-Agent': user_agent})
+		html = urllib.request.urlopen(req)
+	except:
+		self.red('get_html_lines: Erro')
+		return []
+	else:
+		return (html.read().decode('utf-8').split('\n'))
+
+def get_html_page(url: str) -> list:
+	'''
+	Baixa o html de uma página e retorna o contéudo em forma de lista.
+	'''
+	RegExp = re.compile(r'^http:|^ftp:|^https|^www')
+	if RegExp.findall(url) == []:
+		print(f'Erro: url inválida.')
+		return False
+
+	print(f'Conectando ... {url}')
+	try: 
+		req = urllib.request.Request(url, data=None, headers={'User-Agent': user_agent})
+		html = urllib.request.urlopen(req)
+	except:
+		self.red('get_html_lines: Erro')
+		return []
+	else:
+		return (html.read().decode('utf-8'))
+
+def get_html_links(url: str) -> list:
+	'''
+	Retornar uma lista com todos os links encontrados em um url/html.
+	Requer o módulo bs4.
+	'''
+	links = []
+	html = get_html_page(url)
+	if html == []:
+		return []
+
+	soup = BeautifulSoup(html, 'html.parser')
+	for link in soup.findAll('a'):
+		link = link.get('href')
+		links.append(link)
+	return links
 
 class DowProgressBar():
 	'''
@@ -351,6 +572,11 @@ def downloader(url: str, output_file: str) -> bool:
 	# https://stackoverflow.com/questions/37748105/how-to-use-progressbar-module-with-urlretrieve
 	# https://www.programmersought.com/article/80002135225/
 	# curl -i HEAD url
+
+	if os.path.isfile(output_file) == True:
+		print(' + Arquivo encontrado ... {}'.format(output_file))
+		return True
+
 	RegExp = re.compile(r'^http|ftp|www')
 	if (RegExp.findall(url) == []):
 		print(f'downloader: Falha informe um url válido')
@@ -397,88 +623,6 @@ def downloader(url: str, output_file: str) -> bool:
 		urllib.request.urlretrieve(url, output_file, DowProgressBar())
 		return True
 
-#=====================================================#
 
-class Unpack(PrintText):
-	def __init__(self, destination=os.getcwd()):
-		self.destination = destination
-
-	def check_destination(self):
-		if os.path.isdir(self.destination) == False:
-			mkdir(self.destination)
-
-		if os.access(self.destination, os.W_OK) == True:
-			return True
-		else:
-			self.red(f'[!] Falha você não tem permissão de escrita em ... {self.destination}')
-			return False
-
-	def clear_dir_unpack(self):
-		if self.check_destination() != True:
-			return
-		
-		os.chdir(self.destination)
-		files = os.listdir(self.destination)
-
-		for f in files:
-			self.yellow(f'Limpando o diretório ... {self.destination}')
-			rmdir(f)    
-
-	def tar(self, file):
-		# Verificar se o arquivo e do tipo tar
-		if not tarfile.is_tarfile(file):
-			self.red(f'O arquivo {file} NÃO é do tipo ".tar"')
-			return False
-			
-		self.clear_dir_unpack()
-		print(f'Descomprimindo: {file}', end= ' ')
-		os.chdir(self.destination)
-		try:
-			tar = tarfile.open(file)
-			tar.extractall()
-			tar.close()
-			print('OK')
-		except(KeyboardInterrupt):
-			print('Cancelado com Ctrl c')
-			sys.exit()
-		except Exception as err:
-			print()
-			self.red(f'Falha na descompressão de: {file}\n', err)
-			sys.exit(1)
-
-	def zip(self, file):
-		# Verificar se o arquivo e do tipo zip
-		if not is_zipfile(file):
-			self.red(f'O arquivo {file} NÃO é do tipo (.zip)')
-			return
-
-		self.clear_dir_unpack()
-		print(f'Descomprimindo: {file}', end= ' ')
-		os.chdir(self.destination)
-
-		try:
-			with ZipFile(file, 'r') as zip: 
-				# printing all the contents of the zip file 
-				# zip.printdir()  
-				zip.extractall()
-			print('OK')
-		except:
-			print()
-			self.red(f'Falha na descompressão do arquivo ... {file}')
-			sys.exit('1')
-
-	def deb(self, file):
-		self.clear_dir_unpack()
-		os.chdir(DirUnpack)
-
-		print(f'Descomprimindo ... {file}', end=' ')
-		try:
-			os.system(f'ar -x {file} --output={DirUnpack} 1> /dev/null 2>&1')
-		except Exception as err:
-			print(' ')
-			self.red(err)
-			sys.exit(1)
-		else:
-			print('OK')
 
 

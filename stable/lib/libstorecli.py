@@ -136,23 +136,6 @@ def is_executable(exec):
 	else:
 		return False
 
-def get_links(url):
-	'''
-	Retornar uma lista com todos os links encontrados em um url.
-	'''
-	links = []
-	try: 
-		print(f'Conectando ... {url}')
-		html = urllib.request.urlopen(url).read()
-	except Exception as err:
-		print(err)
-		sys.exit()
-	else:
-		soup = BeautifulSoup(html, 'html.parser')
-		for LINK in soup.findAll('a'):
-			link = LINK.get('href')
-			links.append(link)
-		return links
 
 def sha256(file, sum):
 	'''
@@ -174,89 +157,6 @@ def sha256(file, sum):
 		print('FALHA')
 		return False
 
-#-----------------------------------------------------------#
-# Descompressão de arquivos.
-#-----------------------------------------------------------#
-class Unpack(PrintText):
-	def __init__(self, destination=DirUnpack):
-		self.destination = destination
-
-	def check_destination(self):
-		if os.path.isdir(self.destination) == False:
-			mkdir(self.destination)
-
-		if os.access(self.destination, os.W_OK) == True:
-			return True
-		else:
-			print(f'[!] Falha você não tem permissão de escrita em: {self.destination}')
-			return False
-
-	def clear_dir_unpack(self):
-		if self.check_destination() != True:
-			return
-		
-		os.chdir(self.destination)
-		files = os.listdir(self.destination)
-
-		for f in files:
-			rmdir(f)    
-
-	def tar(self, file):
-		# Verificar se o arquivo e do tipo tar
-		if not tarfile.is_tarfile(file):
-			self.red(f'O arquivo {file} NÃO é do tipo ".tar"')
-			return
-			
-		self.clear_dir_unpack()
-		print(f'Descomprimindo: {file}', end= ' ')
-		os.chdir(self.destination)
-		try:
-			tar = tarfile.open(file)
-			tar.extractall()
-			tar.close()
-			print('OK')
-		except(KeyboardInterrupt):
-			print('Cancelado com Ctrl c')
-			sys.exit()
-		except Exception as err:
-			print()
-			self.red(f'Falha na descompressão de: {file}\n', err)
-			sys.exit(1)
-
-	def zip(self, file):
-		# Verificar se o arquivo e do tipo zip
-		if not is_zipfile(file):
-			self.red(f'O arquivo {file} NÃO é do tipo (.zip)')
-			return
-
-		self.clear_dir_unpack()
-		print(f'Descomprimindo: {file}', end= ' ')
-		os.chdir(self.destination)
-
-		try:
-			with ZipFile(file, 'r') as zip: 
-				# printing all the contents of the zip file 
-				# zip.printdir()  
-				zip.extractall()
-			print('OK')
-		except:
-			print()
-			self.red(f'Falha na descompressão do arquivo ... {file}')
-			sys.exit('1')
-
-	def deb(self, file):
-		self.clear_dir_unpack()
-		os.chdir(DirUnpack)
-
-		print(f'Descomprimindo ... {file}', end=' ')
-		try:
-			os.system(f'ar -x {file} --output={DirUnpack} 1> /dev/null 2>&1')
-		except Exception as err:
-			print(' ')
-			self.red(err)
-			sys.exit(1)
-		else:
-			print('OK')
 
 
 def gitclone(repo):
