@@ -26,10 +26,10 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 		if utils.KERNEL_TYPE == 'Linux':
 			self.desktop_file = '/usr/share/applications/balena-etcher-electron.desktop'
 			self.etcher_destination = '/opt/balenaEtcher'
-
-		self.etcher_package = ''
-		self.etcher_url = ''
-		self.etcher_destination = ''
+		else:
+			self.etcher_package = ''
+			self.etcher_url = ''
+			self.etcher_destination = ''
 		
 	def add_desktop_file(self):
 		'''
@@ -86,7 +86,7 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 		name_etcher = os.path.basename(self.etcher_url)
 		self.etcher_package = os.path.abspath(os.path.join(self.dir_cache, name_etcher))
 		
-		if utils.DownloadFiles().wget_download(self.etcher_url, self.etcher_package) == False:
+		if utils.DownloadFiles().curl_download(self.etcher_url, self.etcher_package) == False:
 			return False
 			
 		self.yellow(f'Instalando em ... {self.etcher_destination}')

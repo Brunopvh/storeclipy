@@ -736,6 +736,9 @@ class DownloadFiles(SetUserConfig, PrintText):
 		
 	def curl_download(self, url, output_file: str) -> bool:
 		os.chdir(self.dir_temp)
+		if os.path.isfile(output_file) == True:
+			print(' + Arquivo encontrado ... {}'.format(output_file))
+			return True
 		
 		print(f'Baixando ... {output_file}')
 		print('Conectando .... {}'.format(url))
