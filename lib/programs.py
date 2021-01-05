@@ -1,238 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-#
+
 '''
 REFERÊNCIAS
   https://www.it-swarm.dev/pt/python/como-posso-obter-links-href-de-html-usando-python/969762638/
   https://www.crummy.com/software/BeautifulSoup/bs4/doc/
   https://pythonhelp.wordpress.com/tag/hashlib/
-
 '''
 
 import os, sys
 import subprocess
-import tempfile
 import shutil
-import platform
 import urllib.request
-import hashlib
-import tarfile
-from pathlib import Path
-from getpass import getuser
-from zipfile import ZipFile, is_zipfile
-from time import sleep
-
-# Local libs
-from lib.print_text import PrintText
-from lib.gpglib import *
-
-# módulos locais para Linux/FreeBSD.
-from lib.apt_get import AptGet
-from lib.dpkg import Dpkg 
-from lib.pacman import Pacman
-from lib.pkg import Pkg
-from lib.os_release import ReleaseInfo
-
-try:
-	from bs4 import BeautifulSoup
-except Exception as erro:
-	print(erro, ' => execute: pip3 install bs4 --user')
-	sys.exit()
-
-app_name = 'storecli'
-CYellow = '\033[0;33m'
-CRed = '\033[0;31m'
-CReset = '\033[m'
-
-
-#==================================================#
-# Diretórios de trabalho
-#==================================================#
-if platform.system() == 'FreeBSD':
-	DirHome = os.path.abspath(os.path.join('/usr', Path.home()))
-else:
-	DirHome = Path.home()
-
-if (platform.system() == 'Linux') or (platform.system() == 'FreeBSD'):
-	DirBin = os.path.abspath(os.path.join(DirHome, '.local', 'bin'))
-	DirDesktopFiles = os.path.abspath(os.path.join(DirHome, '.local', 'share', 'applications'))
-	DirCache = os.path.abspath(os.path.join(DirHome, '.cache', app_name))
-	DirConfig = os.path.abspath(os.path.join(DirHome, '.config', app_name))
-	DirDownloads = os.path.abspath(os.path.join(DirHome, '.cache', app_name, 'downloads'))
-	DirIcons = os.path.abspath(os.path.join(DirHome, '.local', 'share', 'icons'))
-	#DirTemp = tempfile.mkdtemp()
-	DirTemp = os.path.abspath(os.path.join('/tmp', app_name, getuser()))
-	DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
-	DirGitclone = os.path.abspath(os.path.join(DirTemp, 'gitclone'))
-	DirGpg = os.path.abspath(os.path.join(DirHome, '.gnupg'))
-
-	list_dirs = [
-		DirHome,
-		DirBin,
-		DirCache,
-		DirConfig,
-		DirDownloads,
-		DirTemp,
-		DirUnpack,
-		DirGitclone,
-		DirDesktopFiles,
-		DirGpg,
-	]
-
-elif platform.system() == 'Windows':
-	DirBin = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', 'Programs'))
-	DirCache = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name))
-	DirConfig = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name))
-	DirDownloads = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name, 'downloads'))
-	#DirTemp = tempfile.mkdtemp()
-	DirTemp = os.path.abspath(os.path.join(DirHome, 'AppData', 'Local', app_name, 'temp'))
-	DirUnpack = os.path.abspath(os.path.join(DirTemp, 'unpack'))
-	DirGitclone = os.path.abspath(os.path.join(DirTemp, 'gitclone'))
-	DirGpg = os.path.abspath(os.path.join(DirHome, '.gnupg'))
-
-	list_dirs = [
-		DirHome,
-		DirBin,
-		DirCache,
-		DirConfig,
-		DirDownloads,
-		DirTemp,
-		DirUnpack,
-		DirGitclone,
-		DirGpg,
-	]
-
-def mkdir(path):
-		try:
-			if not os.path.exists(path):
-				os.makedirs(path, 0o700)
-				return True
-		except Exception as erro:
-			print("[!] Não foi possível criar o diretório: {0}".format(path))
-			print(erro)
-			return False
-		if not os.access(path, os.W_OK):
-			print("[!] Você não tem permissão de escrita em: {0}".format(path))
-			return False
-		return True
-
-for DIR in list_dirs:
-	mkdir(DIR)
-
-def rmdir(path):
-	if not path:
-		return
-
-	try:
-		print(f'Apagando ... {path}')
-		shutil.rmtree(path)
-	except:
-		print(f'Autênticação nescessária para apagar ... {path}')
-		os.system(f'sudo rm -rf {path}')
-	
-def is_executable(exec):
-	if int(subprocess.getstatusoutput(f'command -v {exec}')[0]) == int('0'):
-		return True
-	else:
-		return False
-
-
-def sha256(file: str, sum: str) -> bool:
-	'''
-	Função que recebe um arquivo e uma hash em forma de string (respectivamente) e gera
-	a hash do arquivo (sha256sum) para comparar com o valor passado no argumento. Se os
-	valores forem iguais, a função irá retornar True, se não irá retornar False.
-	'''
-	print(f'Gerando hash do arquivo ... {file}')
-	f = open(file, 'rb')
-	h = hashlib.sha256()
-	h.update(f.read())
-	hash_file = h.hexdigest() 
-	
-	print('Comparando valores ...', end=' ')
-	if (hash_file) == sum:
-		print('OK')
-		return True
-	else:
-		print('FALHA')
-		return False
-
-
-
-def gitclone(repo):
-	'''Clonar repositórios.'''
-	print(f'Entrando no diretório ... {DirGitclone}')
-	os.chdir(DirGitclone)
-	dirs = os.listdir(DirGitclone)
-	dir_repo = os.path.basename(repo).replace('.git', '')
-	for d in dirs:
-		if os.path.exists(d) == dir_repo:
-			yes_no = input(f'Deseja apagar {d} [{CYellow}s{CReset}/{CRed}n{CReset}]?: ').strip().lower()
-			if (yes_no == 's') or (yes_no == 'y'):
-				rmdir(d)
-			else:
-				return
-
-	os.system(f'git clone {repo}')
-
-def wget_download(url, output_path):
-	print(f'Entrando no diretório ... {DirDownloads}')
-	os.chdir(DirDownloads)
-	if output_path:
-		if os.path.isfile(output_path) == True:
-			print(f'Arquivo encontrado ... {output_path}')
-			return True
-
-		PrintText().yellow(f'Conectando ... {url}')
-		try:
-			wget.download(url, output_path)
-		except Exception as err:
-			print('\n', err)
-			return False
-		else:
-			print(' OK')
-			return True
-	else:
-		print(f'Conectando ... {url}')
-		try:
-			wget.download(url)
-		except Exception as err:
-			print('\n', err)
-			return False
-		else:
-			print(' OK')
-			return True
-
-def curl_download(url, output_path):
-	print(f'Entrando no diretório ... {DirDownloads}')
-	os.chdir(DirDownloads)
-	if not is_executable('curl'):
-		PrintText().red('Instale a ferramenta "curl" para prosseguir.')
-		return False
-
-	if output_path:
-		if os.path.isfile(output_path) == True:
-			print(f'Arquivo encontrado ... {output_path}')
-			return True
-		PrintText().yellow(f'Baixando ... {output_path}')
-		os.system(f'curl -S -L -o {output_path} {url}')
-	else:
-		os.system(f'curl -S -L -O {url}')
+import utils
 
 
 #-----------------------------------------------------------#
 # Acessórios
 #-----------------------------------------------------------#
-class Etcher(PrintText):
+class Etcher(utils.SetUserConfig, utils.PrintText):
 	def __init__(self):
 		# https://github.com/balena-io/etcher/releases
-		self.desktop_file = '/usr/share/applications/balena-etcher-electron.desktop'
+		super().__init__(utils.appname, create_dirs=True)
+		self.root_dirs = utils.SetRootConfig(utils.appname, create_dirs=True)
+		if utils.KERNEL_TYPE == 'Linux':
+			self.desktop_file = '/usr/share/applications/balena-etcher-electron.desktop'
+			self.etcher_destination = '/opt/balenaEtcher'
+
 		self.etcher_package = ''
 		self.etcher_url = ''
-		self.etcher_destination = '/opt/balenaEtcher'
-
-	def add_desktop_file(self):
+		self.etcher_destination = ''
 		
+	def add_desktop_file(self):
+		'''
+		Criar arquivo .desktop
+		'''
 		lines = [
 			'[Desktop Entry]',
 			'Name=balenaEtcher',
@@ -246,15 +48,11 @@ class Etcher(PrintText):
 			'Categories=Utility;',
 		]
 
-		os.chdir(DirTemp)
-		f = open('tmp.desktop', 'w')
-		for line in lines:
-			f.write(f'{line}\n')
-		f.seek(0)
-		f.close()
-
+		obj_file = utils.ReadFile(self.file_temp)
+		obj_file.write_file(lines)
+		
 		self.yellow(f'Configurando ... {self.desktop_file}')
-		os.system(f'sudo mv tmp.desktop {self.desktop_file}')
+		os.system(f'sudo mv {self.file_temp} {self.desktop_file}')
 		os.system(f'sudo chown root:root {self.desktop_file}')
 		os.system(f'sudo chmod 755 {self.desktop_file}')
 
@@ -272,15 +70,11 @@ class Etcher(PrintText):
 			'fi',
 		]
 
-		os.chdir(DirTemp)
-		f = open('script.tmp', 'w')
-		for line in lines:
-			f.write(f'{line}\n')
-		f.seek(0)
-		f.close()
+		obj_script = utils.ReadFile(self.file_temp)
+		obj_script.write_file(lines)
 
 		self.yellow(f'Configurando ... /opt/balenaEtcher/balena-etcher-electron')
-		os.system(f'sudo mv script.tmp /opt/balenaEtcher/balena-etcher-electron')
+		os.system(f'sudo mv {self.file_temp} /opt/balenaEtcher/balena-etcher-electron')
 		os.system(f'sudo chown root:root /opt/balenaEtcher/balena-etcher-electron')
 		os.system(f'sudo chmod a+x /opt/balenaEtcher/balena-etcher-electron')
 
@@ -290,8 +84,11 @@ class Etcher(PrintText):
 		'''
 		self.etcher_url = 'https://github.com/balena-io/etcher/releases/download/v1.5.109/balenaEtcher-1.5.109-x64.AppImage'
 		name_etcher = os.path.basename(self.etcher_url)
-		self.etcher_package = os.path.abspath(os.path.join(DirDownloads, name_etcher))
-		curl_download(self.etcher_url, self.etcher_package)
+		self.etcher_package = os.path.abspath(os.path.join(self.dir_cache, name_etcher))
+		
+		if utils.DownloadFiles().wget_download(self.etcher_url, self.etcher_package) == False:
+			return False
+			
 		self.yellow(f'Instalando em ... {self.etcher_destination}')
 		os.system(f'sudo mkdir -p {self.etcher_destination}')
 		os.system(f'sudo cp {self.etcher_package} /opt/balenaEtcher/balena-etcher-electron.AppImage')
@@ -322,35 +119,31 @@ class Etcher(PrintText):
 		os.system(f'echo "deb https://deb.etcher.io stable etcher" | sudo tee /etc/apt/sources.list.d/balena-etcher.list')
 		AptGet().update()
 		AptGet().install('balena-etcher-electron')
-		AptGet().broke()
-
-		if is_executable('balena-etcher-electron') == True:
-			self.yellow('balenaEtcher instalado com sucesso.')
-		else:
-			self.red('Falha na instalação de balenaEtcher.')
+		#AptGet().broke()
 
 	def remove(self):
-		if platform.system() == 'Linux':
-			if ReleaseInfo().info('ID') == 'arch':
+		if utils.KERNEL_TYPE == 'Linux':
+			if utils.ReleaseInfo().get('ID') == 'arch':
 				rmdir(self.etcher_destination)
 				rmdir('/usr/local/bin/balena-etcher-electron')
 				rmdir(self.desktop_file)
-			elif ReleaseInfo().info('ID') == 'debian':
+			elif utils.ReleaseInfo().get('ID') == 'debian':
 				AptGet().remove('balena-etcher-electron')
 
 	def install(self):
-		if platform.system() == 'Linux':
-			if ReleaseInfo().info('ID') == 'arch':
+		if utils.KERNEL_TYPE == 'Linux':
+			if utils.ReleaseInfo().get('ID') == 'arch':
 				self.etcher_archlinux()
-			elif ReleaseInfo().info('ID') == 'debian':
-				self.etcher_debian()
+			elif utils.ReleaseInfo().get('ID') == 'debian':
+				#self.etcher_debian()
+				self.etcher_appimage()
 
-		if is_executable('balena-etcher-electron') == True:
+		if utils.is_executable('balena-etcher-electron') == True:
 			self.yellow('balenaEtcher instalado com sucesso.')
 		else:
 			self.red('Falha na instalação de balenaEtcher.')
 
-class Veracrypt(PrintText):
+class Veracrypt(utils.PrintText):
 	def __init__(self):
 		# Urls e arquivos.
 		self.URL = 'https://www.veracrypt.fr/en/Downloads.html'
@@ -394,7 +187,7 @@ class Veracrypt(PrintText):
 		print(f'Executando ... {setup}')
 		os.system(f'./{setup}')
 		os.system(f'sudo rm {setup}')
-		if is_executable('veracrypt'):
+		if utils.is_executable('veracrypt'):
 			self.green('Veracrypt instalado com sucesso')
 			return True
 		else:
@@ -406,7 +199,7 @@ class Veracrypt(PrintText):
 		os.system('sudo /usr/bin/veracrypt-uninstall.sh')
 		
 	def install(self):
-		if is_executable('veracrypt'):
+		if utils.is_executable('veracrypt'):
 			self.yellow('veracrypt já está instalado use a opção "--remove" para desinstalar.')
 			return
 			
@@ -416,19 +209,19 @@ class Veracrypt(PrintText):
 #-----------------------------------------------------------#
 # Desenvolvimento
 #-----------------------------------------------------------#
-class Java(PrintText):
+class Java(utils.PrintText):
 	def __init__(self):
 		pass    
 
 	def install(self):
 		self.msg('Instalando: jre11-openjdk jre11-openjdk-headless')
-		if platform.system() == 'Linux':
-			if ReleaseInfo().info('ID') == 'arch':
+		if utils.KERNEL_TYPE == 'Linux':
+			if utils.ReleaseInfo().get('ID') == 'arch':
 				Pacman().install('jre11-openjdk jre11-openjdk-headless')
 			else:
 				pass
 
-class Idea(PrintText):
+class Idea(utils.PrintText):
 	def __init__(self):
 		self.idea_url = 'https://download-cf.jetbrains.com/idea/ideaIC-2020.2.1.tar.gz'
 		self.idea_tar_file = os.path.abspath(os.path.join(DirDownloads, os.path.basename(self.idea_url)))
@@ -500,7 +293,7 @@ class Idea(PrintText):
 	def install(self):
 		self.linux_tar()
 		
-class Pycharm(PrintText):
+class Pycharm(utils.PrintText):
 	def __init__(self):
 		self.pycharm_shasum = '60b2eeea5237f536e5d46351fce604452ce6b16d037d2b7696ef37726e1ff78a'  
 		self.pycharm_url = 'https://download-cf.jetbrains.com/python/pycharm-community-2020.2.tar.gz'
@@ -517,7 +310,7 @@ class Pycharm(PrintText):
 		os.system(self.pycharm_pkg)
 
 	def linux_tar(self):
-		if is_executable('pycharm'):
+		if utils.is_executable('pycharm'):
 			print('Pycharm já instalado use "--remove pycharm" para desinstalar.')
 			return
 
@@ -582,7 +375,7 @@ class Pycharm(PrintText):
 # Escritório
 #-----------------------------------------------------------#
 	 
-class MsFonts(PrintText):
+class MsFonts(utils.PrintText):
 	def __init__(self):
 		pass    
 
@@ -606,15 +399,15 @@ class MsFonts(PrintText):
 		os.system('sudo pacman -U --noconfirm ttf-ms-fonts.tar.zst')
 
 	def install(self):
-		if platform.system() == 'Linux':
-			if ReleaseInfo().info('ID') == 'arch':
+		if utils.KERNEL_TYPE == 'Linux':
+			if utils.ReleaseInfo().get('ID') == 'arch':
 				self.archlinux()
 			
 
 #-----------------------------------------------------------#
 # Navegadores
 #-----------------------------------------------------------#
-class Browser(PrintText):
+class Browser(utils.PrintText):
 	def __init__(self):
 		self.google_chrome_url_deb = 'https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb'
 		
@@ -659,12 +452,12 @@ class Browser(PrintText):
 		os.system('sudo pacman -U --noconfirm google-chrome.tar.zst')
 		
 	def google_chrome(self):
-		if is_executable('google-chrome-stable') == True:
+		if utils.is_executable('google-chrome-stable') == True:
 			self.yellow('google-chrome já está instalado...')
 			return True
 
 		self.msg('Instalando google-chrome')
-		info = ReleaseInfo().info('ID') # Detectar qual o sistema base.
+		info = utils.ReleaseInfo().get('ID') # Detectar qual o sistema base.
 		if info == 'arch':
 			self.google_chrome_archlinux()
 		elif info == 'debian':
@@ -716,12 +509,12 @@ class Browser(PrintText):
 		os.system('sudo dnf install opera-stable')
 
 	def opera_stable(self):
-		if is_executable('opera-stable') == True:
+		if utils.is_executable('opera-stable') == True:
 			self.yellow('opera-stable já está instalado...')
 			return True
 
 		self.msg('Instalando opera-stable')
-		info = ReleaseInfo().info('ID') # Detectar qual o sistema base.
+		info = utils.ReleaseInfo().get('ID') # Detectar qual o sistema base.
 		if info == 'arch':
 			self.opera_stable_archlinux()
 		elif info == 'debian':
@@ -733,7 +526,7 @@ class Browser(PrintText):
 			sleep(1)
 
 	def torbrowser(self):
-		if platform.system() == 'Linux':
+		if utils.KERNEL_TYPE == 'Linux':
 			url_torbrowser_installer = 'https://raw.github.com/Brunopvh/torbrowser/master/tor.sh'
 			path_torbrowser_installer = os.path.abspath(os.path.join(DirDownloads, 'tor.sh'))
 			curl_download(url_torbrowser_installer, path_torbrowser_installer)
@@ -746,7 +539,7 @@ class Browser(PrintText):
 #-----------------------------------------------------------#
 # Internet
 #-----------------------------------------------------------#
-class YoutubeDl(PrintText):
+class YoutubeDl(utils.PrintText):
 	def __init__(self):
 		'''
 		http://ytdl-org.github.io/youtube-dl/download.html
@@ -774,7 +567,7 @@ class YoutubeDl(PrintText):
 		self.msg('Instalando ... youtube-dl')
 		self.linux()
 		
-class YoutubeDlGui(PrintText):
+class YoutubeDlGui(utils.PrintText):
 	def __init__(self):
 		self.URL = 'https://github.com/MrS0m30n3/youtube-dl-gui/archive/master.zip'
 		self.path_file_zip = os.path.abspath(os.path.join(DirDownloads, 'youtube-dlg.zip'))
@@ -786,11 +579,11 @@ class YoutubeDlGui(PrintText):
 		self.yellow('Instalando python twodict')
 		os.chdir('twodict')
 		
-		if is_executable('python2.7') == True:
+		if utils.is_executable('python2.7') == True:
 			os.system('sudo python2.7 setup.py install')
-		elif is_executable('python2') == True:
+		elif utils.is_executable('python2') == True:
 			os.system('sudo python2 setup.py install')
-		elif is_executable('python') == True:
+		elif utils.is_executable('python') == True:
 			os.system('sudo python setup.py install')
 		else:
 			self.red('Instale o python2 para prosseguir')
@@ -801,11 +594,11 @@ class YoutubeDlGui(PrintText):
 		Unpack().zip(self.path_file_zip)
 		os.chdir(f'{DirUnpack}/youtube-dl-gui-master')
 		self.yellow('Compilando youtube-dl-gui')
-		if is_executable('python2.7') == True:
+		if utils.is_executable('python2.7') == True:
 			os.system('sudo python2.7 setup.py install')
-		elif is_executable('python2') == True:
+		elif utils.is_executable('python2') == True:
 			os.system('sudo python2 setup.py install')
-		elif is_executable('python') == True:
+		elif utils.is_executable('python') == True:
 			os.system('sudo python setup.py install')
 		else:
 			self.red('Instale o python2 para prosseguir')
@@ -816,9 +609,9 @@ class YoutubeDlGui(PrintText):
 		Cria o arquivo de configuração ".desktop" para o root.
 		'''
 		os.chdir(DirTemp)
-		if platform.system() == 'Linux':
+		if utils.KERNEL_TYPE == 'Linux':
 			f = '/usr/share/applications/youtube-dl-gui.desktop'
-		elif platform.system() == 'FreeBSD':
+		elif utils.KERNEL_TYPE == 'FreeBSD':
 			f = '/usr/local/share/applications/youtube-dl-gui.desktop'
 			
 		self.yellow(f'Criando o arquivo ... {f}')
@@ -842,7 +635,7 @@ class YoutubeDlGui(PrintText):
 		file.close()
 		os.system(f'sudo cp youtube-dl-gui.desktop {f}')
 		os.system(f'cp {f} {DirDesktopFiles}/yotube-dl-gui.desktop')
-		if is_executable('gtk-update-icon-cache'):
+		if utils.is_executable('gtk-update-icon-cache'):
 			os.system('gtk-update-icon-cache')
 	
 	def freebsd(self):    
@@ -863,22 +656,22 @@ class YoutubeDlGui(PrintText):
 		self.file_desktop_root()
 
 	def install(self):
-		if is_executable('youtube-dl-gui'):
+		if utils.is_executable('youtube-dl-gui'):
 			self.yellow('Youtube-dl-gui já está instalado')
 
 		self.msg('Instalando youtube-dl-gui')
-		if platform.system() == 'FreeBSD':
+		if utils.KERNEL_TYPE == 'FreeBSD':
 			self.freebsd()
-		elif platform.system() == 'Linux':
-			if ReleaseInfo().info('ID') == 'arch':
+		elif utils.KERNEL_TYPE == 'Linux':
+			if utils.ReleaseInfo().get('ID') == 'arch':
 				self.archlinux()
-			elif ReleaseInfo().info('CODENAME') == 'buster':
+			elif utils.ReleaseInfo().get('CODENAME') == 'buster':
 				self.debian()
 		
 #-----------------------------------------------------------#
 # Preferências
 #-----------------------------------------------------------#
-class Papirus(PrintText):
+class Papirus(utils.PrintText):
 	def __init__(self):
 		self.papirus_url = 'https://github.com/PapirusDevelopmentTeam/papirus-icon-theme/archive/master.tar.gz'
 		self.papirus_tar_file = os.path.abspath(os.path.join(DirDownloads, 'papirus.tar.gz'))
@@ -924,21 +717,21 @@ class Papirus(PrintText):
 		os.system(f'cp -R Papirus-Dark {self.dir_epapirus}')
 
 	def install(self):
-		if platform.system() == 'Linux': # Instalação em sistemas Linux
-			if ReleaseInfo().info('ID') == 'arch':
+		if utils.KERNEL_TYPE == 'Linux': # Instalação em sistemas Linux
+			if utils.ReleaseInfo().get('ID') == 'arch':
 				#Pacman().install('papirus-icon-theme')
 				self.papirus_tar()
 			elif os.path.isfile('/etc/debian_version') == True:
 				AptGet().install('papirus-icon-theme')
 			else:
 				self.papirus_tar()
-		elif platform.system() == 'FreeBSD':
+		elif utils.KERNEL_TYPE == 'FreeBSD':
 			Pkg().install('papirus-icon-theme')
 	
 #-----------------------------------------------------------#
 # Wine
 #-----------------------------------------------------------#
-class Wine(PrintText):
+class Wine(utils.PrintText):
 	def __init__(self):
 		pass
 
@@ -946,7 +739,7 @@ class Wine(PrintText):
 		url_installer_pywine = 'https://raw.github.com/Brunopvh/pywine/master/INSTALL.sh'
 		path_installer_pywine = os.path.abspath(os.path.join(DirDownloads, 'wine-installer.sh'))
 
-		if platform.system() == 'Linux':
+		if utils.KERNEL_TYPE == 'Linux':
 			wget_download(url_installer_pywine, path_installer_pywine)
 			os.system(f'chmod +x {path_installer_pywine}')
 			self.yellow(f'Executando ... sudo sh {path_installer_pywine}')

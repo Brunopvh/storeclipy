@@ -4,7 +4,7 @@
 import os, sys
 import argparse
 
-__version__ = '2021-01-02'
+__version__ = '2021-01-04'
 
 dir_run = os.getcwd()    
 _script = os.path.abspath(os.path.realpath(__file__))
@@ -19,8 +19,9 @@ dir_local_libs = os.path.abspath(os.path.join(dir_of_executable, 'lib'))
 sys.path.insert(0, dir_local_libs)
 
 # Módulos locais.
-from utils import KERNEL_TYPE
 import requeriments
+import programs
+from utils import KERNEL_TYPE
 
 # root
 if KERNEL_TYPE == 'Linux':
@@ -112,9 +113,6 @@ apps_preferences = (
     'papirus',
 )
 
-requeriments.verify()
-
-exit()
 if args.list_all_apps: # Listar os aplicativos disponiveis para instalação.
     print()
     print(' Acessorios:')
@@ -149,7 +147,7 @@ if args.list_all_apps: # Listar os aplicativos disponiveis para instalação.
 elif args.pkg_for_install:          # Instalar um programa
     for pkg in args.pkg_for_install:
         if pkg == 'etcher':
-            Etcher().install()
+            programs.Etcher().install()
         elif pkg == 'veracrypt':
             Veracrypt().install()
         elif pkg == 'google-chrome':

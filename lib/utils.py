@@ -9,6 +9,7 @@ import getpass
 import shutil
 import tempfile
 import tarfile
+import hashlib
 import urllib.request
 import subprocess
 import progressbar # Externo
@@ -157,7 +158,25 @@ def rmdir(path):
 		print('OK')
 		return True
 
-#=====================================================#
+def sha256(file: str, sum: str) -> bool:
+	'''
+	Função que recebe um arquivo e uma hash em forma de string (respectivamente) e gera
+	a hash do arquivo (sha256sum) para comparar com o valor passado no argumento. Se os
+	valores forem iguais, a função irá retornar True, se não irá retornar False.
+	'''
+	print(f'Gerando hash do arquivo ... {file}')
+	f = open(file, 'rb')
+	h = hashlib.sha256()
+	h.update(f.read())
+	hash_file = h.hexdigest() 
+	
+	print('Comparando valores ...', end=' ')
+	if (hash_file) == sum:
+		print('OK')
+		return True
+	else:
+		PrintText().red('FALHA')
+		return False
 
 def is_executable(app_executable: str) -> bool:
 	OutPut = subprocess.getstatusoutput(f'command -v {app_executable}')
@@ -165,8 +184,6 @@ def is_executable(app_executable: str) -> bool:
 		return True
 	else:
 		return False
-
-#=====================================================#
 
 class ReadFile(PrintText):
 	def __init__(self, file: str):
@@ -245,11 +262,66 @@ class ReadFile(PrintText):
 			if (RegExp.findall(NewLine) != []):
 				ContentMath.append(NewLine)
 		return ContentMath
-			
-#=====================================================#
+
+class SetRootConfig:
+	def __init__(self, appname, create_dirs=True):
+		self.kernel_type = KERNEL_TYPE
+		self.appname = appname
+		self.dir_home = Path.home()
+
+		if (self.kernel_type == 'Linux') or (self.kernel_type == 'FreeBSD'):
+			self.dir_bin_root = '/usr/local/bin'
+			self.dir_icons_root = '/usr/share/icons/hicolor'
+			self.dir_desktop_links_root = '/usr/share/applications'
+			self.dir_themes_root = '/usr/share/themes'
+			self.dir_cache_root = os.path.abspath(os.path.join('/var/cache', self.appname))
+			self.dir_gnupg_root = os.path.abspath(os.path.join(self.dir_home, '.gnupg'))
+			self.dir_config_root = os.path.abspath(os.path.join('/etc', self.appname))
+			self.file_config_root = os.path.abspath(os.path.join(self.dir_config_root, f'{self.appname}.conf'))
+		elif self.kernel_type == 'Windows':
+			self.dir_bin_root = ''
+			self.dir_icons_root = ''
+			self.dir_desktop_links_root = ''
+			self.dir_themes_root = ''
+			self.dir_cache_root = ''
+			self.dir_gnupg_root = ''
+			self.dir_config_root = ''
+			self.file_config_root = ''
+				
+		# self.dir_temp = tempfile.TemporaryDirectory().name
+		self.file_temp = tempfile.NamedTemporaryFile(delete=True).name
+		if (self.kernel_type == 'Linux') or (self.kernel_type == 'FreeBSD'):
+			self.dir_temp_root = os.path.abspath(os.path.join('/tmp', f'{self.appname}-{getpass.getuser()}'))
+		elif self.kernel_type == 'Windows':
+			self.dir_temp_root = os.path.abspath(os.path.join('C:', f'{self.appname}-{getpass.getuser()}'))
+
+		self.dir_unpack_root = os.path.abspath(os.path.join(self.dir_temp_root, 'unpack'))
+		self.dir_gitclone_root = os.path.abspath(os.path.join(self.dir_temp_root, 'gitclone'))
+
+		self.root_info = {
+			'home': self.dir_home,
+			'bin': self.dir_bin_root,
+			'cache': self.dir_cache_root,
+			'config': self.dir_config_root,
+			'icons': self.dir_icons_root,
+			'gnupg': self.dir_gnupg_root,
+			'dir_temp': self.dir_temp_root,
+			'unpack': self.dir_unpack_root,
+			'gitclone': self.dir_gitclone_root,
+			'desktop_links': self.dir_desktop_links_root,
+			}
+
+		if create_dirs == True:
+			for key in self.root_info:
+				d = self.root_info[key]
+				if os.path.isdir(d) == False:
+					print(f'Criando o diretório ... {d}')
+					os.system(f'sudo mkdir -p {d}')
+		
+	def get_root_info(self):
+		return self.root_info
 
 class SetUserConfig:
-
 	def __init__(self, appname, create_dirs=True):
 		self.kernel_type = KERNEL_TYPE
 		self.appname = appname
@@ -260,31 +332,42 @@ class SetUserConfig:
 
 		if (self.kernel_type == 'Linux') or (self.kernel_type == 'FreeBSD'):
 			self.dir_bin = os.path.abspath(os.path.join(self.dir_home, '.local', 'bin'))
+			self.dir_icons = os.path.abspath(os.path.join(self.dir_home, '.local', 'share', 'icons'))
 			self.dir_desktop_links = os.path.abspath(os.path.join(self.dir_home, '.local', 'share', 'applications'))
 			self.dir_cache = os.path.abspath(os.path.join(self.dir_home, '.cache', self.appname))
+			self.dir_gnupg = os.path.abspath(os.path.join(self.dir_home, '.gnupg'))
 			self.dir_config = os.path.abspath(os.path.join(self.dir_home, '.config', self.appname))
 			self.file_config = os.path.abspath(os.path.join(self.dir_config, f'{self.appname}.conf'))
 		elif self.kernel_type == 'Windows':
 			self.dir_bin = os.path.abspath(os.path.join(self.dir_home, 'AppData', 'Local', 'Programs', self.appname))
+			self.dir_icons = ''
 			self.dir_desktop_links = ''
+			self.dir_gnupg = os.path.abspath(os.path.join(self.dir_home, '.gnupg'))
 			self.dir_cache = os.path.abspath(os.path.join(self.dir_home, 'AppData', 'LocalLow', self.appname))
 			self.dir_config = os.path.abspath(os.path.join(self.dir_home, 'AppData', 'Roaming', self.appname))
 			self.file_config = os.path.abspath(os.path.join(self.dir_config, f'{self.appname}.conf'))	
 				
-		self.file_temp = tempfile.NamedTemporaryFile(delete=True).name
 		# self.dir_temp = tempfile.TemporaryDirectory().name
+		self.file_temp = tempfile.NamedTemporaryFile(delete=True).name
 		if (self.kernel_type == 'Linux') or (self.kernel_type == 'FreeBSD'):
 			self.dir_temp = os.path.abspath(os.path.join('/tmp', f'{self.appname}-{getpass.getuser()}'))
 		elif self.kernel_type == 'Windows':
 			self.dir_temp = os.path.abspath(os.path.join('C:', f'{self.appname}-{getpass.getuser()}'))
+
+		self.dir_unpack = os.path.abspath(os.path.join(self.dir_temp, 'unpack'))
+		self.dir_gitclone = os.path.abspath(os.path.join(self.dir_temp, 'gitclone'))
 
 		self.user_info = {
 			'home': self.dir_home,
 			'cache': self.dir_cache,
 			'config': self.dir_config,
 			'bin': self.dir_bin,
-			'desktop_links': self.dir_desktop_links,
+			'icons': self.dir_icons,
+			'gnupg': self.dir_gnupg,
 			'dir_temp': self.dir_temp,
+			'unpack': self.dir_unpack,
+			'gitclone': self.dir_gitclone,
+			'desktop_links': self.dir_desktop_links,
 			}
 
 		if create_dirs == True:
@@ -335,8 +418,6 @@ class SetUserConfig:
 		content_bashrc.append(NewUserPath)
 		os.remove(file_bashrc)
 		obj_bashrc.write_file(content_bashrc)
-
-#=====================================================#
 
 class ReleaseInfo(object):
 	def __init__(self):
@@ -394,7 +475,7 @@ class ReleaseInfo(object):
 		for key in self.release_os_info:
 			print(key, '=>', self.release_os_info[key])
 
-	def info(self, type_info: str) -> dict:
+	def get(self, type_info: str) -> dict:
 		self.release_os_info = self.get_info()
 
 		if type_info == 'ALL':
@@ -404,8 +485,6 @@ class ReleaseInfo(object):
 			return str(self.release_os_info[type_info]) 
 		else:
 			return {}
-
-#=====================================================#
 
 class Unpack(PrintText):
 	def __init__(self, destination=os.getcwd()):
@@ -425,7 +504,6 @@ class Unpack(PrintText):
 		
 		os.chdir(self.destination)
 		files = os.listdir(self.destination)
-
 		for f in files:
 			rmdir(f)    
 
@@ -435,7 +513,6 @@ class Unpack(PrintText):
 			self.red(f'O arquivo {file} NÃO é do tipo ".tar"')
 			return False
 			
-		self.clear_dir_unpack()
 		print(f'Descomprimindo ... {os.path.basename(file)}', end=' ')
 		os.chdir(self.destination)
 		try:
@@ -447,7 +524,6 @@ class Unpack(PrintText):
 			sys.exit()
 		except Exception as err:
 			self.red('Erro')
-			self.red(err)
 			sys.exit(1)
 		else:
 			print('OK')
@@ -488,9 +564,6 @@ class Unpack(PrintText):
 		else:
 			self.red('Falha')
 			sys.exit(1)
-		
-
-#=====================================================#
 
 def get_html_lines(url: str) -> list:
 	'''
@@ -564,65 +637,111 @@ class DowProgressBar():
 		else:
 			self.pbar.finish()
 
-def downloader(url: str, output_file: str) -> bool:
-	'''
-	Retorna True se o download for executado com suscesso, ou False caso o download falhe.
-	'''
-	# https://homepages.inf.ed.ac.uk/imurray2/code/hacks/urlsize
-	# https://stackoverflow.com/questions/37748105/how-to-use-progressbar-module-with-urlretrieve
-	# https://www.programmersought.com/article/80002135225/
-	# curl -i HEAD url
+class DownloadFiles(SetUserConfig, PrintText):
+	def __init__(self):
+		super().__init__(appname, create_dirs=True)
 
-	if os.path.isfile(output_file) == True:
-		print(' + Arquivo encontrado ... {}'.format(output_file))
-		return True
+	def gitclone(self, repo: str, output_dir) -> bool:
+		'''Clonar repositórios.'''
+		print(f'Entrando no diretório ... {output_dir}')
+		os.chdir(output_dir)
+		dirs = os.listdir(output_dir)
+		dir_repo = os.path.basename(repo).replace('.git', '')
+		for d in dirs:
+			if os.path.exists(d) == dir_repo:
+				yes_no = input(f'Deseja apagar {d} [{CYellow}s{CReset}/{CRed}n{CReset}]?: ').strip().lower()
+				if (yes_no == 's') or (yes_no == 'y'):
+					rmdir(d)
+				else:
+					return
 
-	RegExp = re.compile(r'^http|ftp|www')
-	if (RegExp.findall(url) == []):
-		print(f'downloader: Falha informe um url válido')
-		return
+		os.system(f'git clone {repo}')
 
-	print_line()
-	print(f'Conectando ... {url}')
-	req = urllib.request.Request(
-	    		url, 
-	    		data=None, 
-	    		headers={
-					'User-Agent': user_agent 
-					}	
-				)
-	try:
-		response = urllib.request.urlopen(req)
-	except:
-		print(f'downloader: Falha')
-		return False
-	else:	
-		file_online_info = response.info()
-		type_file = file_online_info.get('content-type')
-		num_bytes = int(file_online_info.get('content-length'))
-		num_kbytes = float(num_bytes / 1024)
-		num_megabytes = float(num_bytes / 1048576)	
-		num_gbytes = float(num_bytes / 1073741824)
+	def downloader(self, url: str, output_file: str) -> bool:
+		'''
+		Retorna True se o download for executado com suscesso, ou False caso o download falhe.
+		'''
+		if os.path.isfile(output_file) == True:
+			print(' + Arquivo encontrado ... {}'.format(output_file))
+			return True
 
-		if 1024 > num_bytes:
-			num_total_length = num_bytes
-			unid = 'B'
-		elif 1024 > num_kbytes:
-			num_total_length = num_kbytes
-			unid = 'KB'
-		elif 1024 > num_megabytes:
-			num_total_length = num_megabytes
-			unid = 'MB'
+		os.chdir(self.dir_temp)
+		RegExp = re.compile(r'^http|ftp|www')
+		if (RegExp.findall(url) == []):
+			print(f'downloader: Falha informe um url válido')
+			return False
+
+		self.print_line()
+		print(f'Baixando ... {output_file}')
+		print(f'Conectando ... {url}')
+		req = urllib.request.Request(
+		    		url, 
+		    		data=None, 
+		    		headers={
+						'User-Agent': user_agent 
+						}	
+					)
+		try:
+			response = urllib.request.urlopen(req)
+		except:
+			print(f'downloader: Falha')
+			return False
+		else:	
+			file_online_info = response.info()
+			type_file = file_online_info.get('content-type')
+			num_bytes = int(file_online_info.get('content-length'))
+			num_kbytes = float(num_bytes / 1024)
+			num_megabytes = float(num_bytes / 1048576)	
+			num_gbytes = float(num_bytes / 1073741824)
+
+			if 1024 > num_bytes:
+				num_total_length = num_bytes
+				unid = 'B'
+			elif 1024 > num_kbytes:
+				num_total_length = num_kbytes
+				unid = 'KB'
+			elif 1024 > num_megabytes:
+				num_total_length = num_megabytes
+				unid = 'MB'
+			else:
+				num_total_length = num_gbytes
+				unid = 'GB'
+
+			if num_bytes and type_file:
+				print('{:.2f}{} | {}'.format(num_total_length, unid, type_file))
+
+			print(f'Salvando em ... {output_file}')
+			urllib.request.urlretrieve(url, output_file, DowProgressBar())
+			return True
+
+	def wget_download(self, url: str, output_file: str) -> bool:
+		import wget
+		os.chdir(self.dir_temp)
+		
+		if os.path.isfile(output_file) == True:
+			print(f'Arquivo encontrado ... {output_file}')
+			return True
+
+		print(f'Baixando ... {output_file}')
+		print(f'Conectando ... {url}')
+		try:
+			wget.download(url, output_file)
+		except:
+			print()
+			self.red('Erro')
+			return False
 		else:
-			num_total_length = num_gbytes
-			unid = 'GB'
-
-		if num_bytes and type_file:
-			print('{:.2f}{} | {}'.format(num_total_length, unid, type_file))
-		print(f'Salvando em ... {output_file}')
-		urllib.request.urlretrieve(url, output_file, DowProgressBar())
-		return True
-
-
+			print(' OK')
+			return True
+		
+	def curl_download(self, url, output_file: str) -> bool:
+		os.chdir(self.dir_temp)
+		
+		print(f'Baixando ... {output_file}')
+		print('Conectando .... {}'.format(url))
+		if (KERNEL_TYPE == 'Linux') or (KERNEL_TYPE == 'FreeBSD'):
+			os.system('curl -S -L -o {} {}'.format(output_file, url))
+		elif KERNEL_TYPE == 'Windows':
+			pass
 
 
