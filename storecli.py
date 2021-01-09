@@ -4,7 +4,7 @@
 import os, sys
 import argparse
 
-__version__ = '2021-01-04'
+__version__ = '2021-01-08'
 
 dir_run = os.getcwd()    
 _script = os.path.abspath(os.path.realpath(__file__))
@@ -149,7 +149,7 @@ elif args.pkg_for_install:          # Instalar um programa
         if pkg == 'etcher':
             programs.Etcher().install()
         elif pkg == 'veracrypt':
-            Veracrypt().install()
+            programs.Veracrypt().install()
         elif pkg == 'google-chrome':
             Browser().google_chrome()
         elif pkg == 'java':
@@ -180,7 +180,7 @@ elif args.pkg_for_install:          # Instalar um programa
 elif args.pkg_for_remove:          # Desinstalar um programa
 	for pkg in args.pkg_for_remove:
 	    if pkg == 'etcher':
-	        Etcher().remove()
+	        programs.Etcher().remove()
 	    elif pkg == 'veracrypt':
 	        Veracrypt().remove()
 	    elif pkg == 'pycharm':

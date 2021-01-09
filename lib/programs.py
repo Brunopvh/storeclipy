@@ -13,7 +13,7 @@ import subprocess
 import shutil
 import urllib.request
 import utils
-
+import pkgmanager
 
 #-----------------------------------------------------------#
 # Acessórios
@@ -24,76 +24,68 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 		super().__init__(utils.appname, create_dirs=True)
 		self.root_dirs = utils.SetRootConfig(utils.appname, create_dirs=True)
 		if utils.KERNEL_TYPE == 'Linux':
-			self.desktop_file = '/usr/share/applications/balena-etcher-electron.desktop'
-			self.etcher_destination = '/opt/balenaEtcher'
+			self.desktop_file = os.path.abspath(os.path.join(self.dir_desktop_links, 'balena-etcher-electron.desktop'))
+			self.etcher_destination_dir = os.path.abspath(os.path.join(self.dir_bin, 'balenaEtcher'))
+			self.etcher_destination_file = os.path.abspath(os.path.join(self.etcher_destination_dir, 'balena-etcher-electron.AppImage'))
+			self.etcher_script = os.path.abspath(os.path.join(self.dir_bin, 'balena-etcher-electron'))
 		else:
-			self.etcher_package = ''
+			self.etcher_package_path = ''
 			self.etcher_url = ''
-			self.etcher_destination = ''
+			self.etcher_destination_dir = ''
 		
 	def add_desktop_file(self):
 		'''
 		Criar arquivo .desktop
 		'''
-		lines = [
-			'[Desktop Entry]',
-			'Name=balenaEtcher',
-			'Exec=/opt/balenaEtcher/balena-etcher-electron %U',
-			'Terminal=false',
-			'Type=Application',
-			'Icon=balena-etcher-electron',
-			'StartupWMClass=balenaEtcher',
-			'Comment=Flash OS images to SD cards and USB drives, safely and easily.',
-			'MimeType=x-scheme-handler/etcher;',
-			'Categories=Utility;',
+		lines_desktop_file = [
+		'[Desktop Entry]',
+		'Name=balenaEtcher',
+		'Exec={}'.format(self.etcher_script),
+		'Terminal=false',
+		'Type=Application',
+		'Icon=balena-etcher-electron',
+		'StartupWMClass=balenaEtcher',
+		'Comment=Flash OS images to SD cards and USB drives, safely and easily.',
+		'MimeType=x-scheme-handler/etcher;',
+		'Categories=Utility;',
 		]
 
-		obj_file = utils.ReadFile(self.file_temp)
-		obj_file.write_file(lines)
-		
-		self.yellow(f'Configurando ... {self.desktop_file}')
-		os.system(f'sudo mv {self.file_temp} {self.desktop_file}')
-		os.system(f'sudo chown root:root {self.desktop_file}')
-		os.system(f'sudo chmod 755 {self.desktop_file}')
+		obj_desktop_file = utils.ReadFile(self.file_temp)
+		obj_desktop_file.write_file(lines_desktop_file)
+		print(f'Configurando ... {self.desktop_file}')
+		os.system(f'mv {self.file_temp} {self.desktop_file}')
+		os.system(f'chmod 755 {self.desktop_file}')
 
 	def add_etcher_script_appimage(self):
 		'''
 		Método para criar o script que executa o pacote AppImage no sistema.
 		'''
-		lines = [
+		lines_script = [
 			'#!/bin/bash',
-			'script_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"',
-			'if [[ $EUID -ne 0 ]] || [[ $ELECTRON_RUN_AS_NODE ]]; then',
-			'"${script_dir}"/balena-etcher-electron.AppImage "$@"',
-			'else',
-			'"${script_dir}"/balena-etcher-electron.AppImage "$@" --no-sandbox',
-			'fi',
-		]
+			f'cd {self.etcher_destination_dir}',
+			f'{self.etcher_destination_file} "$@" --no-sandbox',
+			]
 
 		obj_script = utils.ReadFile(self.file_temp)
-		obj_script.write_file(lines)
-
-		self.yellow(f'Configurando ... /opt/balenaEtcher/balena-etcher-electron')
-		os.system(f'sudo mv {self.file_temp} /opt/balenaEtcher/balena-etcher-electron')
-		os.system(f'sudo chown root:root /opt/balenaEtcher/balena-etcher-electron')
-		os.system(f'sudo chmod a+x /opt/balenaEtcher/balena-etcher-electron')
+		obj_script.write_file(lines_script)
+		os.system(f'mv {self.file_temp} {self.etcher_script}')
+		os.system(f'chmod a+x {self.etcher_script}')
 
 	def etcher_appimage(self):
 		'''
-		Instala o etcher no formato AppImage em qualquer Linux.
+		Instalar o etcher no formato AppImage em qualquer Linux.
 		'''
 		self.etcher_url = 'https://github.com/balena-io/etcher/releases/download/v1.5.109/balenaEtcher-1.5.109-x64.AppImage'
 		name_etcher = os.path.basename(self.etcher_url)
-		self.etcher_package = os.path.abspath(os.path.join(self.dir_cache, name_etcher))
+		self.etcher_package_path = os.path.abspath(os.path.join(self.dir_cache, name_etcher))
 		
-		if utils.DownloadFiles().curl_download(self.etcher_url, self.etcher_package) == False:
+		if utils.DownloadFiles().curl_download(self.etcher_url, self.etcher_package_path) == False:
 			return False
 			
-		self.yellow(f'Instalando em ... {self.etcher_destination}')
-		os.system(f'sudo mkdir -p {self.etcher_destination}')
-		os.system(f'sudo cp {self.etcher_package} /opt/balenaEtcher/balena-etcher-electron.AppImage')
-		os.system('sudo chmod a+x /opt/balenaEtcher/balena-etcher-electron.AppImage')
-		os.system('sudo ln -sf /opt/balenaEtcher/balena-etcher-electron /usr/local/bin/balena-etcher-electron')
+		print(f'Instalando em ... {self.etcher_destination_dir}')
+		utils.mkdir(self.etcher_destination_dir)
+		os.system(f'cp {self.etcher_package_path} {self.etcher_destination_file}')
+		os.system(f'chmod a+x {self.etcher_destination_file}')
 		self.add_etcher_script_appimage()
 		self.add_desktop_file()
 
@@ -103,9 +95,9 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 		'''
 		self.etcher_url = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
 		name_etcher = os.path.basename(self.etcher_url)
-		self.etcher_package = os.path.abspath(os.path.join(DirDownloads, name_etcher))
-		curl_download(self.etcher_url, self.etcher_package)
-		Unpack().deb(self.etcher_package)
+		self.etcher_package_path = os.path.abspath(os.path.join(DirDownloads, name_etcher))
+		curl_download(self.etcher_url, self.etcher_package_path)
+		Unpack().deb(self.etcher_package_path)
 		os.chdir(DirUnpack)
 		self.yellow(f'Descomprimindo ... {DirUnpack}/data.tar.bz2')
 		os.system('sudo tar -jxvf data.tar.bz2 -C / 1> /dev/null')
@@ -114,69 +106,76 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 		os.system('sudo ln -sf /opt/balenaEtcher/balena-etcher-electron /usr/local/bin/balena-etcher-electron')
 
 	def etcher_debian(self):
-		self.yellow('Adicionando key e repositório')
+		if utils.is_root() == False:
+			return False
+
+		self.sblue('Adicionando key e repositório')
 		os.system('sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com:443 --recv-keys 379CE192D401AB61')
 		os.system(f'echo "deb https://deb.etcher.io stable etcher" | sudo tee /etc/apt/sources.list.d/balena-etcher.list')
-		AptGet().update()
-		AptGet().install('balena-etcher-electron')
+		pkgmanager.AptGet().update()
+		pkgmanager.AptGet().install('balena-etcher-electron')
 		#AptGet().broke()
 
 	def remove(self):
 		if utils.KERNEL_TYPE == 'Linux':
 			if utils.ReleaseInfo().get('ID') == 'arch':
-				rmdir(self.etcher_destination)
-				rmdir('/usr/local/bin/balena-etcher-electron')
-				rmdir(self.desktop_file)
+				utils.rmdir(self.etcher_destination_dir)
+				utils.rmdir(self.etcher_script)
+				utils.rmdir(self.desktop_file)
 			elif utils.ReleaseInfo().get('ID') == 'debian':
-				AptGet().remove('balena-etcher-electron')
+				pkgmanager.AptGet().remove('balena-etcher-electron')
 
-	def install(self):
+	def install(self) -> bool:
 		if utils.KERNEL_TYPE == 'Linux':
 			if utils.ReleaseInfo().get('ID') == 'arch':
 				self.etcher_archlinux()
 			elif utils.ReleaseInfo().get('ID') == 'debian':
-				#self.etcher_debian()
-				self.etcher_appimage()
+				self.etcher_debian()
 
 		if utils.is_executable('balena-etcher-electron') == True:
 			self.yellow('balenaEtcher instalado com sucesso.')
+			return True
 		else:
 			self.red('Falha na instalação de balenaEtcher.')
+			return False
 
-class Veracrypt(utils.PrintText):
+class Veracrypt(utils.SetUserConfig, utils.PrintText):
 	def __init__(self):
+		super().__init__(utils.appname)
 		# Urls e arquivos.
-		self.URL = 'https://www.veracrypt.fr/en/Downloads.html'
-		self.url_veracrypt_asc = 'https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc'
+		self.url_download_page = 'https://www.veracrypt.fr/en/Downloads.html'
+		self.url_veracrypt_pub_key = 'https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc'
 		self.url_veracrypt_sig = ''
 		self.url_veracrypt_package = '' # Cada método irá determinar sua propria url de download.
-		self.path_veracrypt_asc = os.path.abspath(os.path.join(DirTemp, 'VeraCrypt_PGP_public_key.asc'))
-		self.path_veracrypt_sig = '' # Cada método definirá no path deste arquivo.
+		self.path_veracrypt_pub_key = os.path.abspath(os.path.join(self.dir_temp, 'VeraCrypt_PGP_public_key.asc'))
+		self.path_veracrypt_sig = '' # Cada método definirá o path deste arquivo.
 		self.path_veracrypt_package = ''
 
-	def linux_tar(self):
+	def set_url_veracrypt(self):
+		''' Setar as variáveis self.url_veracrypt_package e self.url_veracrypt_sig'''
 		# Obter o link de download do pacote ".tar".
-		urls = get_links(self.URL)
+		urls = utils.get_html_links(self.url_download_page)
 		for URL in urls:
 			if (URL[-4:] == '.bz2') and (not 'freebsd' in URL) and ('setup' in URL) and (not 'legacy' in URL):
 				self.url_veracrypt_package = URL
 				self.url_veracrypt_sig = f'{URL}.sig'
 				break
-		
+
+	def linux_tar(self):
 		# Definir o camiho completo dos arquivos a serem baixados.
 		name_tarfile = os.path.basename(self.url_veracrypt_package)
-		self.path_veracrypt_package = os.path.abspath(os.path.join(DirDownloads, name_tarfile))
-		self.path_veracrypt_sig = f'{self.path_veracrypt_package}.sig'
-		
-		curl_download(self.url_veracrypt_package, self.path_veracrypt_package)
-		curl_download(self.url_veracrypt_sig, self.path_veracrypt_sig)
-		gpg_import(self.path_veracrypt_asc, self.url_veracrypt_asc)
+		self.path_veracrypt_package = os.path.abspath(os.path.join(self.dir_cache, name_tarfile))
+		self.path_veracrypt_sig = f'{self.path_veracrypt_package}.sig'	
+		utils.DownloadFiles().wget_download(self.url_veracrypt_package, self.path_veracrypt_package)
+		utils.DownloadFiles().downloader(self.url_veracrypt_sig, self.path_veracrypt_sig)
+
+		utils.gpg_import(self.path_veracrypt_pub_key, self.url_veracrypt_pub_key)
 
 		# Verificar a intergridade do pacote de instalação. 
-		if gpg_verify(self.path_veracrypt_sig, self.path_veracrypt_package) != True:
+		if utils.gpg_verify(self.path_veracrypt_sig, self.path_veracrypt_package) != True:
 			self.red(f'Arquivo não confiavel: {self.path_veracrypt_package}')
 			return False
-		
+		return
 		Unpack().tar(self.path_veracrypt_package)
 		os.chdir(DirUnpack)
 		files_in_dir = os.listdir(DirUnpack)
@@ -201,8 +200,9 @@ class Veracrypt(utils.PrintText):
 	def install(self):
 		if utils.is_executable('veracrypt'):
 			self.yellow('veracrypt já está instalado use a opção "--remove" para desinstalar.')
-			return
-			
+			#return True
+		
+		self.set_url_veracrypt()
 		self.msg('Instalando veracrypt')
 		self.linux_tar()
 

@@ -142,21 +142,36 @@ def mkdir(path):
 	print('OK')
 	return True 
 
-#=====================================================#
-
-def rmdir(path):
+def rmdir(path, silent=False):
 	if os.path.exists(path) == False:
+		print(f'Não encontrado ... {path}')
 		return False
 
 	print(f'Apagando ... {path}', end=' ')
 	try:
-		shutil.rmtree(path)
+		if os.path.isdir(path):
+			shutil.rmtree(path)
+		else:
+			os.remove(path)
 	except:
 		print(f'{CRed}Erro{CReset}')
 		return False
 	else:
 		print('OK')
 		return True
+
+def is_root(text='Autêntitação necessária para prosseguir [%u]: ')-> bool:
+	StatusOutput = 0
+	if os.geteuid() != 0:
+		try:
+			StatusOutput = subprocess.check_call(f"sudo -v -p '%s'" % text, shell=True)
+		except:
+			StatusOutput = int(1)
+
+	if StatusOutput == int(0):
+		return True
+	else:
+		return False
 
 def sha256(file: str, sum: str) -> bool:
 	'''
@@ -619,6 +634,52 @@ def get_html_links(url: str) -> list:
 		links.append(link)
 	return links
 
+
+def gpg_import(key_file: str, url_key=None) -> bool:
+    '''
+    Função para importar chaves gpg. você pode informar apenas o arquivo .asc com os dados
+    ou caso preferir pode informar o URL que contém um arquivo com os dados a serem importados
+    é um caminho completo onde o arquivo será baixado.
+
+    EX:
+       gpg_import(key_file) => irá assumir que o arquivo já existe no local indicado.
+       gpg_import(key_file, url) => irá baixar o "URL" no "destino key_file".
+    '''
+
+    if url_key != None:
+        print(f'Baixando ... {url_key}', end=' ')
+        try:
+            urllib.request.urlretrieve(url_key, key_file)
+        except :
+            print(f'{CRed}Erro{CReset}')
+            return False
+        else:
+            print('OK')
+            return True
+
+    print(f'Importando ... {key_file}', end=' ') 
+    out = subprocess.getstatusoutput(f'gpg --import {key_file}')
+    if out[0] == 0:
+        print(f'{CGreen}OK{CReset}')
+        return True
+    else:
+        print()
+        print('\033[0;31mErro\033[m')
+        print(out[1])
+        return False
+
+def gpg_verify(path_to_signature_file, path_file):
+    print(f'Verificando arquivo ... {path_file}', end=' ')
+    out = subprocess.getstatusoutput(f'gpg --verify {path_to_signature_file} {path_file}')
+    if out[0] == 0:
+        print('\033[0;32mOK\033[m')
+        return True
+    else:
+        print('')
+        print('\033[0;31mERRO\033[m')
+        print(out[1])
+        return False
+
 class DowProgressBar():
 	'''
 	https://stackoverflow.com/questions/37748105/how-to-use-progressbar-module-with-urlretrieve
@@ -662,7 +723,7 @@ class DownloadFiles(SetUserConfig, PrintText):
 		Retorna True se o download for executado com suscesso, ou False caso o download falhe.
 		'''
 		if os.path.isfile(output_file) == True:
-			print(' + Arquivo encontrado ... {}'.format(output_file))
+			print('Arquivo encontrado ... {}'.format(output_file))
 			return True
 
 		os.chdir(self.dir_temp)
