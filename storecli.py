@@ -4,7 +4,7 @@
 import os, sys
 import argparse
 
-__version__ = '2021-01-09'
+__version__ = '2021-01-10'
 
 dir_run = os.getcwd()    
 _script = os.path.abspath(os.path.realpath(__file__))
@@ -22,6 +22,7 @@ sys.path.insert(0, dir_local_libs)
 import requeriments
 import programs
 from utils import KERNEL_TYPE
+from requeriments import ConfigureCliRequeriments
 
 # root
 if KERNEL_TYPE == 'Linux':
@@ -37,6 +38,13 @@ parser.add_argument(
     '-v', '--version', 
     action='version', 
     version=(f"%(prog)s {__version__}")
+    )
+
+parser.add_argument(
+    '-c', '--configure',
+    action='store_true', 
+    dest='configure_requeriments', # Argumento que não será passado para opção -l/--list.
+    help='Instalar dependências deste programa.'
     )
 
 parser.add_argument(
@@ -143,7 +151,8 @@ if args.list_all_apps: # Listar os aplicativos disponiveis para instalação.
     print(' Preferências:')
     for app in apps_preferences:
         print('   ', app)
-
+elif args.configure_requeriments:
+    ConfigureCliRequeriments().check_all_requeriments()
 elif args.pkg_for_install:          # Instalar um programa
     for pkg in args.pkg_for_install:
         if pkg == 'etcher':

@@ -3,7 +3,6 @@
 
 import os
 import sys
-import platform
 import re
 import getpass
 import shutil
@@ -13,8 +12,14 @@ import hashlib
 import urllib.request
 import subprocess
 import progressbar # Externo
+from platform import python_version
 from pathlib import Path
+from zipfile import ZipFile, is_zipfile
 from bs4 import BeautifulSoup # Externo
+
+if float(python_version()[0:3]) < float(3.7):
+	print('Erro ... necessário python 3.7 ou superior')
+	sys.exit(1)
 
 # Default
 CRed = '\033[0;31m'
@@ -31,7 +36,7 @@ CSYellow = '\033[1;33m'
 CSBlue = '\033[1;34m'
 CSWhite = '\033[1;37m'
 
-KERNEL_TYPE = platform.system()
+KERNEL_TYPE = os.uname()[0] 
 appname = 'storecli-python'
 
 user_agents = [
@@ -71,7 +76,7 @@ class PrintText:
 		print(f'{CRed}[!] {text}{CReset}')
 
 	def green(self, text=''):
-		print(f'{CGreen}{text}{CReset}')
+		print(f'{CGreen}[+] {text}{CReset}')
 
 	def yellow(self, text=''):
 		print(f'{CYellow}{text}{CReset}')
@@ -713,6 +718,7 @@ class DowProgressBar():
 class DownloadFiles(SetUserConfig, PrintText):
 	def __init__(self):
 		super().__init__(appname, create_dirs=True)
+		self.curl_binary_win = os.path.abspath(os.path.join(self.dir_bin, 'curl-win64', 'bin', 'curl.exe'))
 
 	def gitclone(self, repo: str, output_dir) -> bool:
 		'''Clonar repositórios.'''
@@ -817,7 +823,8 @@ class DownloadFiles(SetUserConfig, PrintText):
 		print('Conectando .... {}'.format(url))
 		if (KERNEL_TYPE == 'Linux') or (KERNEL_TYPE == 'FreeBSD'):
 			os.system('curl -S -L -o {} {}'.format(output_file, url))
+			# os.system(f'wine {self.curl_binary_win} -S -L -o {output_file} {url}') # Execução via wine.
 		elif KERNEL_TYPE == 'Windows':
-			pass
+			os.system(f'{self.curl_binary_win} -S -L -o {output_file} {url}')
 
 

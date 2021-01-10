@@ -353,7 +353,7 @@ class Pycharm(utils.SetUserConfig, utils.PrintText):
 			print('Pycharm já instalado use "--remove pycharm" para desinstalar.')
 			return
 
-		utils.DownloadFiles().wget_download(self.pycharm_url, self.pycharm_tar_file)
+		utils.DownloadFiles().curl_download(self.pycharm_url, self.pycharm_tar_file)
 		if utils.sha256(self.pycharm_tar_file, self.pycharm_shasum) != True:
 			return False
 
