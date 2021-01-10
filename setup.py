@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# python3 -c "$(curl -fsSL https://raw.github.com/Brunopvh/storeclipy/master/setup.py)"
+# 
 
 __version__ = '2021-01-10'
 
