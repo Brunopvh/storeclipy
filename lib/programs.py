@@ -128,7 +128,7 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 
 class Veracrypt(utils.SetUserConfig, utils.PrintText):
 	def __init__(self):
-		super().__init__(utils.appname)
+		super().__init__(utils.appname, create_dirs=False)
 		# Urls e arquivos.
 		self.url_download_page = 'https://www.veracrypt.fr/en/Downloads.html'
 		self.url_veracrypt_pub_key = 'https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc'
@@ -193,8 +193,10 @@ class Veracrypt(utils.SetUserConfig, utils.PrintText):
 			self.red('Falha na instalação de Veracrypt')
 			return False
 
-	def win64_setup():
-		pass
+	def win64_setup(self):
+		name_tarfile = os.path.basename(self.url_veracrypt_package)
+		self.path_veracrypt_package = os.path.abspath(os.path.join(self.dir_cache, name_tarfile))
+		utils.DownloadFiles().wget_download(self.url_veracrypt_package, self.path_veracrypt_package)
 	
 	def remove(self):
 		self.msg('Desisntalando veracrypt')

@@ -369,7 +369,7 @@ class SetUserConfig:
 		if (self.kernel_type == 'Linux') or (self.kernel_type == 'FreeBSD'):
 			self.dir_temp = os.path.abspath(os.path.join('/tmp', f'{self.appname}-{getpass.getuser()}'))
 		elif self.kernel_type == 'Windows':
-			self.dir_temp = os.path.abspath(os.path.join('C:', f'{self.appname}-{getpass.getuser()}'))
+			self.dir_temp = os.path.abspath(os.path.join('C:\\', f'{self.appname}-{getpass.getuser()}'))
 
 		self.dir_unpack = os.path.abspath(os.path.join(self.dir_temp, 'unpack'))
 		self.dir_gitclone = os.path.abspath(os.path.join(self.dir_temp, 'gitclone'))
