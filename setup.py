@@ -6,7 +6,12 @@ __version__ = '2021-01-10'
 
 import os, sys
 import argparse
+from platform import python_version
 from shutil import copytree
+
+if float(python_version()[0:3]) < float(3.7):
+	print('Nescessário python 3.7 ou superior para prosseguir.')
+	sys.exit(1)
 
 _script_installer = os.path.abspath(os.path.realpath(__file__))
 dir_of_project = os.path.dirname(_script_installer)
