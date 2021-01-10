@@ -139,8 +139,8 @@ def mkdir(path):
 			print("mkdir: Você não tem permissão de escrita em ... {}".format(path))
 			return False
 
-	print('OK')
-	return True 
+		print('OK')
+		return True 
 
 def rmdir(path, silent=False):
 	if os.path.exists(path) == False:
@@ -179,7 +179,9 @@ def sha256(file: str, sum: str) -> bool:
 	a hash do arquivo (sha256sum) para comparar com o valor passado no argumento. Se os
 	valores forem iguais, a função irá retornar True, se não irá retornar False.
 	'''
-	print(f'Gerando hash do arquivo ... {file}')
+	len_file = float(os.path.getsize(file))
+	len_file = len_file / (1024*1024)
+	print('Gerando hash do arquivo ... {} [{:.2f}MB]'.format(os.path.basename(file), len_file))
 	f = open(file, 'rb')
 	h = hashlib.sha256()
 	h.update(f.read())
@@ -480,6 +482,9 @@ class ReleaseInfo(object):
 				LINE = LINE.replace('ID=', '')
 				self.release_os_info.update({'ID': LINE})
 
+		if os.path.isfile('/etc/debian_version') == True:
+			self.release_os_info.update({'BASE_DISTRO': 'debian'})
+
 		return self.release_os_info
 
 	def show_all(self):
@@ -502,9 +507,11 @@ class ReleaseInfo(object):
 			return {}
 
 class Unpack(PrintText):
-	def __init__(self, destination=os.getcwd()):
+	def __init__(self, destination=os.getcwd(), clear_dir=False):
 		super().__init__()
+		self.clear_dir = clear_dir
 		self.destination = destination
+		os.chdir(self.destination)
 
 	def check_destination(self):
 		if os.access(self.destination, os.W_OK) == True:
@@ -528,8 +535,12 @@ class Unpack(PrintText):
 			self.red(f'O arquivo {file} NÃO é do tipo ".tar"')
 			return False
 			
-		print(f'Descomprimindo ... {os.path.basename(file)}', end=' ')
+		if self.clear_dir == True:
+			self.clear_dir_unpack()
+
+		len_file = float(os.path.getsize(file) / (1024*1024))
 		os.chdir(self.destination)
+		print('Descomprimindo ... {} [{:.2f}MB]'.format(os.path.basename(file), len_file), end=' ')
 		try:
 			tar = tarfile.open(file)
 			tar.extractall()
@@ -538,7 +549,8 @@ class Unpack(PrintText):
 			print('Cancelado com Ctrl c')
 			sys.exit()
 		except Exception as err:
-			self.red('Erro')
+			self.sred('Erro')
+			print(err)
 			sys.exit(1)
 		else:
 			print('OK')
@@ -546,10 +558,9 @@ class Unpack(PrintText):
 	def zip(self, file):
 		# Verificar se o arquivo e do tipo zip
 		if not is_zipfile(file):
-			self.red(f'O arquivo {file} NÃO é do tipo (.zip)')
-			return
+			self.red(f'O arquivo {file} não é do tipo (.zip)')
+			return False
 
-		self.clear_dir_unpack()
 		print(f'Descomprimindo ... {os.path.basename(file)}', end= ' ')
 		os.chdir(self.destination)
 		try:
@@ -562,13 +573,14 @@ class Unpack(PrintText):
 			sys.exit('1')
 		else:
 			print('OK')
+			return True
 
 	def deb(self, file):
 		self.clear_dir_unpack()
 		os.chdir(self.destination)
 
 		print(f'Descomprimindo ... {os.path.basename(file)}', end=' ')
-		#os.system(f'ar -x {file} --output={DirUnpack} 1> /dev/null 2>&1')
+		# os.system(f'ar -x {file} --output={DirUnpack} 1> /dev/null 2>&1')
 		if os.path.isfile('/etc/debian_version'):
 			out = subprocess.getstatusoutput('ar -x {}'.format(file))
 		else:
@@ -675,8 +687,8 @@ def gpg_verify(path_to_signature_file, path_file):
         print('\033[0;32mOK\033[m')
         return True
     else:
-        print('')
-        print('\033[0;31mERRO\033[m')
+        print()
+        print('\033[0;31mFalha\033[m')
         print(out[1])
         return False
 

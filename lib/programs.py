@@ -8,8 +8,9 @@ REFERÊNCIAS
   https://pythonhelp.wordpress.com/tag/hashlib/
 '''
 
-import os, sys
+import os, sys, stat
 import subprocess
+import re
 import shutil
 import urllib.request
 import utils
@@ -89,22 +90,6 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 		self.add_etcher_script_appimage()
 		self.add_desktop_file()
 
-	def etcher_archlinux(self):
-		'''
-		Instalar o etcher no archlinux, apartir de um pacote ".deb"
-		'''
-		self.etcher_url = 'https://github.com/balena-io/etcher/releases/download/v1.5.107/balena-etcher-electron_1.5.107_amd64.deb'
-		name_etcher = os.path.basename(self.etcher_url)
-		self.etcher_package_path = os.path.abspath(os.path.join(DirDownloads, name_etcher))
-		curl_download(self.etcher_url, self.etcher_package_path)
-		Unpack().deb(self.etcher_package_path)
-		os.chdir(DirUnpack)
-		self.yellow(f'Descomprimindo ... {DirUnpack}/data.tar.bz2')
-		os.system('sudo tar -jxvf data.tar.bz2 -C / 1> /dev/null')
-		print('Criando link ... /usr/local/bin/balena-etcher-electron')
-		os.system('sudo chmod a+x /opt/balenaEtcher')
-		os.system('sudo ln -sf /opt/balenaEtcher/balena-etcher-electron /usr/local/bin/balena-etcher-electron')
-
 	def etcher_debian(self):
 		if utils.is_root() == False:
 			return False
@@ -114,23 +99,25 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 		os.system(f'echo "deb https://deb.etcher.io stable etcher" | sudo tee /etc/apt/sources.list.d/balena-etcher.list')
 		pkgmanager.AptGet().update()
 		pkgmanager.AptGet().install('balena-etcher-electron')
-		#AptGet().broke()
+		# pkgmanager.AptGet().broke()
 
 	def remove(self):
 		if utils.KERNEL_TYPE == 'Linux':
-			if utils.ReleaseInfo().get('ID') == 'arch':
+			if utils.ReleaseInfo().get('BASE_DISTRO') == 'debian':
+				pkgmanager.AptGet().remove('balena-etcher-electron')
+			elif utils.ReleaseInfo().get('ID') == 'arch':
 				utils.rmdir(self.etcher_destination_dir)
 				utils.rmdir(self.etcher_script)
 				utils.rmdir(self.desktop_file)
-			elif utils.ReleaseInfo().get('ID') == 'debian':
-				pkgmanager.AptGet().remove('balena-etcher-electron')
 
 	def install(self) -> bool:
 		if utils.KERNEL_TYPE == 'Linux':
 			if utils.ReleaseInfo().get('ID') == 'arch':
-				self.etcher_archlinux()
+				self.etcher_appimage()
 			elif utils.ReleaseInfo().get('ID') == 'debian':
 				self.etcher_debian()
+		elif utils.KERNEL_TYPE == 'Windows':
+			pass
 
 		if utils.is_executable('balena-etcher-electron') == True:
 			self.yellow('balenaEtcher instalado com sucesso.')
@@ -146,22 +133,32 @@ class Veracrypt(utils.SetUserConfig, utils.PrintText):
 		self.url_download_page = 'https://www.veracrypt.fr/en/Downloads.html'
 		self.url_veracrypt_pub_key = 'https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc'
 		self.url_veracrypt_sig = ''
-		self.url_veracrypt_package = '' # Cada método irá determinar sua propria url de download.
+		self.url_veracrypt_package = '' 
 		self.path_veracrypt_pub_key = os.path.abspath(os.path.join(self.dir_temp, 'VeraCrypt_PGP_public_key.asc'))
-		self.path_veracrypt_sig = '' # Cada método definirá o path deste arquivo.
+		self.path_veracrypt_sig = ''
 		self.path_veracrypt_package = ''
+		self.unpack_files = utils.Unpack(destination=self.dir_unpack, clear_dir=True)
 
 	def set_url_veracrypt(self):
-		''' Setar as variáveis self.url_veracrypt_package e self.url_veracrypt_sig'''
-		# Obter o link de download do pacote ".tar".
+		''' 
+		Setar as variáveis self.url_veracrypt_package e self.url_veracrypt_sig
+		'''
 		urls = utils.get_html_links(self.url_download_page)
+		RegExpLinux = re.compile(r'https.*.tar.bz2.sig')
+		RegExpWindows = re.compile(r'https.*Setup.*.exe.sig')
 		for URL in urls:
-			if (URL[-4:] == '.bz2') and (not 'freebsd' in URL) and ('setup' in URL) and (not 'legacy' in URL):
-				self.url_veracrypt_package = URL
-				self.url_veracrypt_sig = f'{URL}.sig'
-				break
+			if utils.KERNEL_TYPE == 'Linux':
+				if RegExpLinux.findall(URL) != []:
+					if (not 'freebsd' in URL) and (not 'legacy' in URL) and (not 'Source' in URL):
+						self.url_veracrypt_sig = URL
+			elif utils.KERNEL_TYPE == 'Windows':
+				if (RegExpWindows.findall(URL) != []):
+					if (not 'legacy' in URL.lower()):
+						self.url_veracrypt_sig = URL
 
-	def linux_tar(self):
+		self.url_veracrypt_package = self.url_veracrypt_sig.replace('.sig', '')
+
+	def linux_tar(self) -> bool:
 		# Definir o camiho completo dos arquivos a serem baixados.
 		name_tarfile = os.path.basename(self.url_veracrypt_package)
 		self.path_veracrypt_package = os.path.abspath(os.path.join(self.dir_cache, name_tarfile))
@@ -173,38 +170,54 @@ class Veracrypt(utils.SetUserConfig, utils.PrintText):
 
 		# Verificar a intergridade do pacote de instalação. 
 		if utils.gpg_verify(self.path_veracrypt_sig, self.path_veracrypt_package) != True:
-			self.red(f'Arquivo não confiavel: {self.path_veracrypt_package}')
 			return False
-		return
-		Unpack().tar(self.path_veracrypt_package)
-		os.chdir(DirUnpack)
-		files_in_dir = os.listdir(DirUnpack)
-		for file in files_in_dir:
-			if 'setup-gui-x64' in file:
-				setup = file
 
-		print(f'Executando ... {setup}')
-		os.system(f'./{setup}')
-		os.system(f'sudo rm {setup}')
+		self.unpack_files.tar(self.path_veracrypt_package)
+		os.chdir(self.dir_unpack)
+		RegexSetupFile = re.compile(r'veracrypt-.*-setup-gui-x64')
+		files_in_dir = os.listdir(self.dir_unpack)
+		for file in files_in_dir:
+			if RegexSetupFile.findall(file) != []:
+				setup_file_gui = os.path.abspath(os.path.realpath(file))
+				break
+
+		print(f'Executando ... {setup_file_gui}')
+		if utils.is_root() == False:
+			return False
+		os.system(f'sh {setup_file_gui}')
+		os.system(f'sudo rm {setup_file_gui}')
 		if utils.is_executable('veracrypt'):
 			self.green('Veracrypt instalado com sucesso')
 			return True
 		else:
 			self.red('Falha na instalação de Veracrypt')
 			return False
+
+	def win64_setup():
+		pass
 	
 	def remove(self):
 		self.msg('Desisntalando veracrypt')
-		os.system('sudo /usr/bin/veracrypt-uninstall.sh')
+		if utils.KERNEL_TYPE == 'Linux':
+			if utils.is_root() == False:
+				return False
+			os.system('sudo /usr/bin/veracrypt-uninstall.sh')
+		else:
+			self.red('Não foi possivel remover veracrypt')
 		
 	def install(self):
-		if utils.is_executable('veracrypt'):
-			self.yellow('veracrypt já está instalado use a opção "--remove" para desinstalar.')
-			#return True
-		
 		self.set_url_veracrypt()
-		self.msg('Instalando veracrypt')
-		self.linux_tar()
+		if (utils.KERNEL_TYPE == 'Linux') or (utils.KERNEL_TYPE == 'FreeBSD'):
+			if utils.is_executable('veracrypt'):
+				print('veracrypt já está instalado use a opção "--remove" para desinstalar.')
+				return True
+			self.msg('Instalando veracrypt')
+			self.linux_tar()
+		elif utils.KERNEL_TYPE == 'Windows':
+			self.win64_setup()
+		else:
+			self.sred('Programa indisponível para o seu sistema')
+			return False
 
 #-----------------------------------------------------------#
 # Desenvolvimento
@@ -221,90 +234,114 @@ class Java(utils.PrintText):
 			else:
 				pass
 
-class Idea(utils.PrintText):
+class Idea(utils.SetUserConfig, utils.PrintText):
 	def __init__(self):
-		self.idea_url = 'https://download-cf.jetbrains.com/idea/ideaIC-2020.2.1.tar.gz'
-		self.idea_tar_file = os.path.abspath(os.path.join(DirDownloads, os.path.basename(self.idea_url)))
-		self.shasum = 'a107f09ae789acc1324fdf8d22322ea4e4654656c742e4dee8a184e265f1b014'
-		self.idea_dir = os.path.abspath(os.path.join(DirBin, 'idea-IC'))
-		self.idea_script = os.path.abspath(os.path.join(DirBin, 'idea'))
-		self.idea_file_desktop = os.path.abspath(os.path.join(DirDesktopFiles, 'jetbrains-idea.desktop')) 
-		self.idea_png = os.path.abspath(os.path.join(DirIcons, 'idea.png'))
+		super().__init__(utils.appname, create_dirs=True)
+		if utils.KERNEL_TYPE == 'Linux':
+			self.idea_url = 'https://download-cf.jetbrains.com/idea/ideaIC-2020.2.1.tar.gz'
+			self.idea_tar_file = os.path.abspath(os.path.join(self.dir_cache, os.path.basename(self.idea_url)))
+			self.shasum_tar_file = 'a107f09ae789acc1324fdf8d22322ea4e4654656c742e4dee8a184e265f1b014'
+			self.idea_dir = os.path.abspath(os.path.join(self.dir_bin, 'idea-IC'))
+			self.idea_script = os.path.abspath(os.path.join(self.dir_bin, 'idea'))
+			self.idea_file_desktop = os.path.abspath(os.path.join(self.dir_desktop_links, 'jetbrains-idea.desktop')) 
+			self.idea_png = os.path.abspath(os.path.join(self.dir_icons, 'idea.png'))
+
+		self.unpack_files = utils.Unpack(destination=self.dir_unpack, clear_dir=True)
 
 	def linux_tar(self):
 		'''
 		Instalação do idea community via pacote tar.
 		'''
-		curl_download(self.idea_url, self.idea_tar_file)
-		if sha256(self.idea_tar_file, self.shasum) == False:
+		# https://www.tutorialspoint.com/python/os_chmod.htm
+		if os.path.isdir(self.idea_dir) == True:
+			self.syellow('idea-IC já está instalado.')
+			#return True
+
+		utils.DownloadFiles().curl_download(self.idea_url, self.idea_tar_file)
+		if utils.sha256(self.idea_tar_file, self.shasum_tar_file) == False:
 			return False
 
-		Unpack().tar(self.idea_tar_file)
-		os.chdir(DirUnpack)
-		print(f'Movendo ... {self.idea_dir}')
-		os.system(f'mv idea-* {self.idea_dir}')
+		self.unpack_files.tar(self.idea_tar_file)
+		os.chdir(self.dir_unpack)
+		dirs = os.listdir(self.dir_unpack)
+		RegexIdeaic = re.compile(r'^idea-')
+		for d in dirs:
+			if RegexIdeaic.findall(d) != []:
+				idea_temp_dir = os.path.abspath(os.path.join(d))
+				break
+		
+		print(f'Copiando {idea_temp_dir} ... {self.idea_dir}', end=' ')
+		try:
+			shutil.copytree(idea_temp_dir, self.idea_dir, symlinks=True, ignore=None)
+		except(FileExistsError):
+			self.red('')
+			self.sred(f'O arquivo já existe.')
+		except Exception as err:
+			self.red('Erro')
+			print(err)
+		else:
+			self.sblue('OK')
+		
 		os.chdir(self.idea_dir)
-		os.system(f'cp ./bin/idea.png {self.idea_png}')
+		shutil.copy('./bin/idea.png', self.idea_png)
 		
 		idea_desktop_info = [
 			"[Desktop Entry]",
 			"Name=IntelliJ IDEA Ultimate Edition",
 			"Version=1.0",
-			"Comment=java"
+			"Comment=java",
 			f"Icon={self.idea_png}",
-			f"Exec='{self.idea_dir}/bin/idea.sh' %f",
+			f"Exec={self.dir_bin}/idea",
 			"Terminal=false",
 			"Categories=Development;IDE",
 			"Type=Application",
 		]
 
-		print('Criando arquivo ".desktop"')
-		f = open(self.idea_file_desktop, 'w')
-		for line in idea_desktop_info:
-			f.write(f'{line}\n')
+		idea_script_info = [
+			r'#!/bin/sh',
+			f'cd {self.idea_dir}/bin',
+			r'./idea.sh "$@"',
+		]
 
-		f.seek(0)
-		f.close()
-		
-		# Criar atalho para execução na linha de comando.
-		f = open(self.idea_script, 'w')
-		f.write("#!/bin/sh\n")
-		f.write(f"\ncd {self.idea_dir}/bin/ \n")
-		f.write("./idea.sh $@")
-		f.seek(0)
-		f.close()
+		obj_desktop_file = utils.ReadFile(self.idea_file_desktop)
+		obj_desktop_file.write_file(idea_desktop_info)
 
-		os.system(f"chmod +x {self.idea_script}")
+		obj_script_idea = utils.ReadFile(self.idea_script)
+		obj_script_idea.write_file(idea_script_info)
+		os.system(f'chmod +x {self.idea_script}')
 		
 	def remove(self):
 		print('Desisntalando "idea IC community"')
-		if os.path.exists(self.idea_dir):
-			self.red(f'Removendo ... {self.idea_dir}')
-			os.system(f'rm -rf {self.idea_dir}')
-
-		if os.path.exists(self.idea_script):
-			self.red(f'Removendo ... {self.idea_script}')
-			os.system(f'rm -rf {self.idea_script}')
-
-		if os.path.exists(self.idea_png):
-			self.red(f'Removendo ... {self.idea_png}')
-			os.system(f'rm -rf {self.idea_png}')
+		if utils.KERNEL_TYPE == 'Linux':
+			utils.rmdir(self.idea_dir)
+			utils.rmdir(self.idea_script)
+			utils.rmdir(self.idea_png)
+			utils.rmdir(self.idea_file_desktop)
+		elif utils.KERNEL_TYPE == 'Windows':
+			pass
 
 	def install(self):
-		self.linux_tar()
+		if utils.KERNEL_TYPE == 'Linux':
+			self.linux_tar()
+		elif utils.KERNEL_TYPE == 'Windows':
+			pass
 		
-class Pycharm(utils.PrintText):
+class Pycharm(utils.SetUserConfig, utils.PrintText):
 	def __init__(self):
-		self.pycharm_shasum = '60b2eeea5237f536e5d46351fce604452ce6b16d037d2b7696ef37726e1ff78a'  
-		self.pycharm_url = 'https://download-cf.jetbrains.com/python/pycharm-community-2020.2.tar.gz'
-		self.pycharm_tar_file = os.path.abspath(os.path.join(DirDownloads, os.path.basename(self.pycharm_url)))
-		self.pycharm_dir = os.path.abspath(os.path.join(DirBin, 'pycharm-community'))
-		self.pycharm_script = os.path.abspath(os.path.join(DirBin, 'pycharm'))
-		self.pycharm_file_desktop = os.path.abspath(os.path.join(DirDesktopFiles, 'pycharm.desktop')) 
-		self.pycharm_png = os.path.abspath(os.path.join(DirIcons, 'pycharm.png'))
+		super().__init__(utils.appname)
+		if utils.KERNEL_TYPE == 'Linux':
+			self.pycharm_shasum = '60b2eeea5237f536e5d46351fce604452ce6b16d037d2b7696ef37726e1ff78a'  
+			self.pycharm_url = 'https://download-cf.jetbrains.com/python/pycharm-community-2020.2.tar.gz'
+			self.pycharm_tar_file = os.path.abspath(os.path.join(self.dir_cache, os.path.basename(self.pycharm_url)))
+			self.pycharm_dir = os.path.abspath(os.path.join(self.dir_bin, 'pycharm-community'))
+			self.pycharm_script = os.path.abspath(os.path.join(self.dir_bin, 'pycharm'))
+			self.pycharm_file_desktop = os.path.abspath(os.path.join(self.dir_desktop_links, 'pycharm.desktop')) 
+			self.pycharm_png = os.path.abspath(os.path.join(self.dir_icons, 'pycharm.png'))
+		elif utils.KERNEL_TYPE == 'Windows':
+			pass
 		
 	def windows(self):
-		curl_download(self.pycharm_url, self.pycharm_pkg)
+		utils.DownloadFiles().curl_download(self.pycharm_url, self.pycharm_pkg)
 		if sha256(self.pycharm_pkg, self.pycharm_shasum) != True:
 			return False
 		os.system(self.pycharm_pkg)
@@ -314,12 +351,12 @@ class Pycharm(utils.PrintText):
 			print('Pycharm já instalado use "--remove pycharm" para desinstalar.')
 			return
 
-		curl_download(self.pycharm_url, self.pycharm_tar_file)
-		if sha256(self.pycharm_tar_file, self.pycharm_shasum) != True:
+		utils.DownloadFiles().wget_download(self.pycharm_url, self.pycharm_tar_file)
+		if utils.sha256(self.pycharm_tar_file, self.pycharm_shasum) != True:
 			return False
 
-		Unpack().tar(self.pycharm_tar_file)
-		os.chdir(DirUnpack)
+		utils.Unpack(self.dir_unpack).tar(self.pycharm_tar_file)
+		os.chdir(self.dir_unpack)
 		print(f'Movendo ... {self.pycharm_dir}')
 		os.system('mv pycharm-* {}'.format(self.pycharm_dir))
 		os.chdir(self.pycharm_dir)
@@ -336,40 +373,34 @@ class Pycharm(utils.PrintText):
 			"Type=Application",
 		]
 
-		print('Criando arquivo ".desktop"')
-		f = open(self.pycharm_file_desktop, 'w')
-		for line in pycharm_desktop_info:
-			f.write(f'{line}\n')
-
-		f.seek(0)
-		f.close()
-
 		# Criar atalho para execução na linha de comando.
-		f = open(self.pycharm_script, 'w')
-		f.write("#!/bin/sh\n")
-		f.write(f"\ncd {self.pycharm_dir}/bin/ \n")
-		f.write("./pycharm.sh $@")
-		f.seek(0)
-		f.close()
+		pycharm_script_info = [
+			"#!/bin/sh",
+			f"cd {self.pycharm_dir}/bin",
+			r"./pycharm.sh $@",
+		]
 
+		obj_desktop_file_pycharm = utils.ReadFile(self.pycharm_file_desktop)
+		obj_desktop_file_pycharm.write_file(pycharm_desktop_info)
+		obj_script_pycharm = utils.ReadFile(self.pycharm_script)
+		obj_script_pycharm.write_file(pycharm_script_info)
 		os.system(f"chmod +x {self.pycharm_script}")
 
 	def remove(self):
 		print('Desisntalando "pycharm community"')
-		if os.path.exists(self.pycharm_dir):
-			self.red(f'Removendo ... {self.pycharm_dir}')
-			os.system(f'rm -rf {self.pycharm_dir}')
+		if utils.KERNEL_TYPE == 'Linux':
+			utils.rmdir(self.pycharm_dir)
+			utils.rmdir(self.pycharm_script)
+			utils.rmdir(self.pycharm_png)
+			utils.rmdir(self.pycharm_file_desktop)
+		elif utils.KERNEL_TYPE == 'Windows':
+			pass
 
-		if os.path.exists(self.pycharm_script):
-			self.red(f'Removendo ... {self.pycharm_script}')
-			os.system(f'rm -rf {self.pycharm_script}')
-
-		if os.path.exists(self.pycharm_png):
-			self.red(f'Removendo .. {self.pycharm_png}')
-			os.system(f'rm -rf {self.pycharm_png}')
-
-	def install(self):		
-		self.linux_tar()	
+	def install(self):	
+		if utils.KERNEL_TYPE == 'Linux':	
+			self.linux_tar()	
+		elif utils.KERNEL_TYPE == 'Windows':
+			pass
 	 
 #-----------------------------------------------------------#
 # Escritório
@@ -560,8 +591,8 @@ class YoutubeDl(utils.PrintText):
 		if (gpg_verify(self.path_youtube_dl_sig, self.path_youtube_dl_file) != True):
 			return False
 
-		os.system(f'cp {self.path_youtube_dl_file} {DirBin}/youtube-dl')
-		os.system(f'chmod +x {DirBin}/youtube-dl')
+		os.system(f'cp {self.path_youtube_dl_file} {self.dir_bin}/youtube-dl')
+		os.system(f'chmod +x {self.dir_bin}/youtube-dl')
 	   
 	def install(self):
 		self.msg('Instalando ... youtube-dl')
@@ -571,8 +602,8 @@ class YoutubeDlGui(utils.PrintText):
 	def __init__(self):
 		self.URL = 'https://github.com/MrS0m30n3/youtube-dl-gui/archive/master.zip'
 		self.path_file_zip = os.path.abspath(os.path.join(DirDownloads, 'youtube-dlg.zip'))
-		self.destination_ytdlg = os.path.abspath(os.path.join(DirBin, 'youtube_dl_gui'))
-		self.exec_ytdl = os.path.abspath(os.path.join(DirBin, 'youtube-dl-gui')) 
+		self.destination_ytdlg = os.path.abspath(os.path.join(self.dir_bin, 'youtube_dl_gui'))
+		self.exec_ytdl = os.path.abspath(os.path.join(self.dir_bin, 'youtube-dl-gui')) 
 				
 	def twodict(self):
 		gitclone('https://github.com/MrS0m30n3/twodict.git')
@@ -675,10 +706,10 @@ class Papirus(utils.PrintText):
 	def __init__(self):
 		self.papirus_url = 'https://github.com/PapirusDevelopmentTeam/papirus-icon-theme/archive/master.tar.gz'
 		self.papirus_tar_file = os.path.abspath(os.path.join(DirDownloads, 'papirus.tar.gz'))
-		self.dir_papirus = os.path.abspath(os.path.join(DirIcons, 'Papirus'))
-		self.dir_papirus_dark = os.path.abspath(os.path.join(DirIcons, 'Papirus-Dark'))
-		self.dir_papirus_light = os.path.abspath(os.path.join(DirIcons, 'Papirus-Light'))
-		self.dir_epapirus = os.path.abspath(os.path.join(DirIcons, 'ePapirus'))
+		self.dir_papirus = os.path.abspath(os.path.join(self.dir_icons, 'Papirus'))
+		self.dir_papirus_dark = os.path.abspath(os.path.join(self.dir_icons, 'Papirus-Dark'))
+		self.dir_papirus_light = os.path.abspath(os.path.join(self.dir_icons, 'Papirus-Light'))
+		self.dir_epapirus = os.path.abspath(os.path.join(self.dir_icons, 'ePapirus'))
 
 	def papirus_tar(self):
 		self.msg('Instalando papirus')

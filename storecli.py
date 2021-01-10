@@ -4,7 +4,7 @@
 import os, sys
 import argparse
 
-__version__ = '2021-01-08'
+__version__ = '2021-01-09'
 
 dir_run = os.getcwd()    
 _script = os.path.abspath(os.path.realpath(__file__))
@@ -92,7 +92,7 @@ apps_acessory = (
     )
 
 apps_development = (
-    'intellij-idea',
+    'idea-ic',
     'pycharm',
     )
 
@@ -154,10 +154,10 @@ elif args.pkg_for_install:          # Instalar um programa
             Browser().google_chrome()
         elif pkg == 'java':
             Java().install()
-        elif pkg == 'intellij-idea':
-            Idea().install()
+        elif pkg == 'idea-ic':
+            programs.Idea().install()
         elif pkg == 'pycharm':
-            Pycharm().install()
+            programs.Pycharm().install()
         elif pkg == 'papirus':
             Papirus().install()
         elif pkg == 'searx':
@@ -182,11 +182,11 @@ elif args.pkg_for_remove:          # Desinstalar um programa
 	    if pkg == 'etcher':
 	        programs.Etcher().remove()
 	    elif pkg == 'veracrypt':
-	        Veracrypt().remove()
+	        programs.Veracrypt().remove()
 	    elif pkg == 'pycharm':
-	        Pycharm().remove()
-	    elif pkg == 'intellij-idea':
-	        Idea().remove()
+	        programs.Pycharm().remove()
+	    elif pkg == 'idea-ic':
+	        programs.Idea().remove()
 	    else:
 	        print(f'[!] Não foi possivel remover {pkg}')
         
