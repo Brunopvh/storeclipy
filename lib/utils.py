@@ -450,45 +450,48 @@ class ReleaseInfo(object):
 		elif os.path.isfile('/usr/local/etc/os-release') == True:
 		    release_file = '/usr/local/etc/os-release'
 		else:
-			print(f'{__class__}: arquivo release não encontrado.')
-			return False
+			release_file = None
 
-		self.obj_reslease_file = ReadFile(release_file) 
+		if os.path.isfile(release_file) == True:
+			self.obj_reslease_file = ReadFile(release_file) 
 		self.release_os_info = {}
 
 	def get_info(self):
 		'''
 		Obter as informações do sistema contidas no arquivo /etc/os-release.
 		'''
-		lines = self.obj_reslease_file.read_file()
+		if KERNEL_TYPE == 'Windows':
+			self.release_os_info.update({'BASE_DISTRO': 'windows'})
+		else:
+			lines = self.obj_reslease_file.read_file()
 
-		for LINE in lines:
-			if LINE[0:12] == 'PRETTY_NAME=':
-				LINE = LINE.replace('PRETTY_NAME=', '')
-				self.release_os_info.update({'PRETTY_NAME': LINE})
+			for LINE in lines:
+				if LINE[0:12] == 'PRETTY_NAME=':
+					LINE = LINE.replace('PRETTY_NAME=', '')
+					self.release_os_info.update({'PRETTY_NAME': LINE})
 
-			elif LINE[0:5] == 'NAME=':
-				LINE = LINE.replace('NAME=', '')
-				self.release_os_info.update({'NAME': LINE})
+				elif LINE[0:5] == 'NAME=':
+					LINE = LINE.replace('NAME=', '')
+					self.release_os_info.update({'NAME': LINE})
 
-			elif LINE[0:11] == 'VERSION_ID=':
-				LINE = LINE.replace('VERSION_ID=', '')
-				self.release_os_info.update({'VERSION_ID': LINE})
+				elif LINE[0:11] == 'VERSION_ID=':
+					LINE = LINE.replace('VERSION_ID=', '')
+					self.release_os_info.update({'VERSION_ID': LINE})
 
-			elif LINE[0:8] == 'VERSION=':
-				LINE = LINE.replace('VERSION=', '')
-				self.release_os_info.update({'VERSION': LINE})
+				elif LINE[0:8] == 'VERSION=':
+					LINE = LINE.replace('VERSION=', '')
+					self.release_os_info.update({'VERSION': LINE})
 
-			elif LINE[0:17] == 'VERSION_CODENAME=':
-				LINE = LINE.replace('VERSION_CODENAME=', '')
-				self.release_os_info.update({'VERSION_CODENAME': LINE})
+				elif LINE[0:17] == 'VERSION_CODENAME=':
+					LINE = LINE.replace('VERSION_CODENAME=', '')
+					self.release_os_info.update({'VERSION_CODENAME': LINE})
 
-			elif LINE[0:3] == 'ID=':
-				LINE = LINE.replace('ID=', '')
-				self.release_os_info.update({'ID': LINE})
+				elif LINE[0:3] == 'ID=':
+					LINE = LINE.replace('ID=', '')
+					self.release_os_info.update({'ID': LINE})
 
-		if os.path.isfile('/etc/debian_version') == True:
-			self.release_os_info.update({'BASE_DISTRO': 'debian'})
+			if os.path.isfile('/etc/debian_version') == True:
+				self.release_os_info.update({'BASE_DISTRO': 'debian'})
 
 		return self.release_os_info
 
@@ -501,6 +504,13 @@ class ReleaseInfo(object):
 			print(key, '=>', self.release_os_info[key])
 
 	def get(self, type_info: str) -> dict:
+		'''
+		Recebe uma strig com a informação que se deseja obter do sistema e retorna a infomação
+		em forma de string. 
+		   EX get('ID') -> debian, fedora, ubuntu, linuxmint...
+		   get('VERSION_CODENAME') -> buster, focal, tricia...
+		   use o metodo show_all para ver todas as informações disponiveis.
+		'''
 		self.release_os_info = self.get_info()
 
 		if type_info == 'ALL':
@@ -516,7 +526,9 @@ class Unpack(PrintText):
 		super().__init__()
 		self.clear_dir = clear_dir
 		self.destination = destination
-		os.chdir(self.destination)
+		if os.path.isdir(self.destination) == False:
+			self.red('Unpack: O deretório não existe ... {}'.format(self.destination))
+			sys.exit(1)
 
 	def check_destination(self):
 		if os.access(self.destination, os.W_OK) == True:

@@ -4,7 +4,7 @@
 import os, sys
 import argparse
 
-__version__ = '2021-01-10'
+__version__ = '2021-01-16'
 
 dir_run = os.getcwd()    
 _script = os.path.abspath(os.path.realpath(__file__))
@@ -160,7 +160,7 @@ elif args.pkg_for_install:          # Instalar um programa
         elif pkg == 'veracrypt':
             programs.Veracrypt().install()
         elif pkg == 'google-chrome':
-            Browser().google_chrome()
+            programs.Browser().google_chrome()
         elif pkg == 'java':
             Java().install()
         elif pkg == 'idea-ic':

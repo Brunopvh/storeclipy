@@ -13,6 +13,7 @@ import subprocess
 import re
 import shutil
 import urllib.request
+import tempfile
 import utils
 import pkgmanager
 
@@ -128,7 +129,7 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 
 class Veracrypt(utils.SetUserConfig, utils.PrintText):
 	def __init__(self):
-		super().__init__(utils.appname, create_dirs=False)
+		super().__init__(utils.appname, create_dirs=True)
 		# Urls e arquivos.
 		self.url_download_page = 'https://www.veracrypt.fr/en/Downloads.html'
 		self.url_veracrypt_pub_key = 'https://www.idrix.fr/VeraCrypt/VeraCrypt_PGP_public_key.asc'
@@ -205,12 +206,12 @@ class Veracrypt(utils.SetUserConfig, utils.PrintText):
 				return False
 			os.system('sudo /usr/bin/veracrypt-uninstall.sh')
 		else:
-			self.red('Não foi possivel remover veracrypt')
+			pass
 		
 	def install(self):
 		self.set_url_veracrypt()
 		if (utils.KERNEL_TYPE == 'Linux') or (utils.KERNEL_TYPE == 'FreeBSD'):
-			if utils.is_executable('veracrypt'):
+			if shutil.which('veracrypt') != None:
 				print('veracrypt já está instalado use a opção "--remove" para desinstalar.')
 				return True
 			self.msg('Instalando veracrypt')
@@ -229,12 +230,7 @@ class Java(utils.PrintText):
 		pass    
 
 	def install(self):
-		self.msg('Instalando: jre11-openjdk jre11-openjdk-headless')
-		if utils.KERNEL_TYPE == 'Linux':
-			if utils.ReleaseInfo().get('ID') == 'arch':
-				Pacman().install('jre11-openjdk jre11-openjdk-headless')
-			else:
-				pass
+		pass
 
 class Idea(utils.SetUserConfig, utils.PrintText):
 	def __init__(self):
@@ -440,20 +436,38 @@ class MsFonts(utils.PrintText):
 #-----------------------------------------------------------#
 # Navegadores
 #-----------------------------------------------------------#
-class Browser(utils.PrintText):
+class Browser(utils.ReleaseInfo, utils.PrintText):
 	def __init__(self):
-		self.google_chrome_url_deb = 'https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb'
+		super().__init__()
+		self.urls_google_chrome = {
+			'debian': 'https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb',
+			'fedora': None,
+			'windows': None
+		}
+
+		if self.get('BASE_DISTRO') == 'debian':
+			self.url = self.urls_google_chrome['debian']
+		elif self.get('BASE_DISTRO') == 'fedora':
+			self.url = self.urls_google_chrome['fedora']
+		elif self.get('BASE_DISTRO') == 'windows':
+			self.url = self.urls_google_chrome['windows']
 		
 	def google_chrome_debian(self):
 		'''
 		Instalar Google chrome no Debian
 		'''
-		google_chrome_repo_debian = 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main'
-		self.green('Adicionando key e repositório google-chrome')
-		os.system("wget -q 'https://dl.google.com/linux/linux_signing_key.pub' -O- | sudo apt-key add -")
-		os.system(f'echo "{google_chrome_repo_debian}" | sudo tee /etc/apt/sources.list.d/google-chrome.list')
-		AptGet().update()
-		AptGet().install('google-chrome-stable')
+		print('Adicionando key', end=' ')
+		pkgmanager.AptGet().key_add('https://dl.google.com/linux/linux_signing_key.pub')
+		self.green('Adicionando repositório google-chrome')
+		if utils.is_root() == False:
+			return False
+
+		google_chrome_tempfile = tempfile.NamedTemporaryFile(delete=True).name 
+		obj_temp_file = utils.ReadFile(google_chrome_tempfile)
+		obj_temp_file.write_file(['deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main'])
+		os.system(f'sudo mv {google_chrome_tempfile} /etc/apt/sources.list.d/google-chrome.list')
+		pkgmanager.AptGet().update()
+		pkgmanager.AptGet().install('google-chrome-stable')
 
 	def google_chrome_fedora(self):
 		'''
@@ -487,7 +501,7 @@ class Browser(utils.PrintText):
 	def google_chrome(self):
 		if utils.is_executable('google-chrome-stable') == True:
 			self.yellow('google-chrome já está instalado...')
-			return True
+			#return True
 
 		self.msg('Instalando google-chrome')
 		info = utils.ReleaseInfo().get('ID') # Detectar qual o sistema base.

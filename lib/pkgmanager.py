@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
+import urllib.request
 from subprocess import getstatusoutput
 from time import sleep
-from utils import PrintText # Módulo local.
+from utils import PrintText, is_root # Módulo local.
 
 class ProcessLoop(PrintText):
 	def __init__(self, pid=''):
@@ -70,8 +72,6 @@ class AptGet(PrintText):
 
 	def __init__(self):
 		super().__init__()
-		import tempfile
-		self.apt_temp_file = tempfile.NamedTemporaryFile(delete=True).name
 
 	def apt_process_loop(self):
 		'''
@@ -149,29 +149,28 @@ class AptGet(PrintText):
 		content_key = arquivo ou url de uma chave.
 		Recebe um arquivo ou um url contendo uma chave para ser adicionada no sistema.
 		'''
-		if utils.is_root() == False:
+		if is_root() == False:
 			return False
 
 		if os.path.isfile(content_key) == True:
-			print(f'{__class__.__name__} Adicionando key apartir do arquivo ... {content_key}', end=' ')
 			os.system(f'sudo apt-key add {content_key}')
 		else: 
 			RegExp = re.compile(r'^http:|^ftp:|^https|^www')
-			if RegExp.findall(url) == []:
+			if RegExp.findall(content_key) == []:
 				print(f'Erro: url inválida.')
 				return False
 
 			# Obter key apartir do url.
-			self.apt_temp_file
-			print(f'Adicionando key apartir do url ... {content_key} ', end=' ')
+			import tempfile
+			apt_temp_file = tempfile.NamedTemporaryFile(delete=True).name
 			try:
-				urllib.request.urlretrieve(content_key, self.apt_temp_file)
+				urllib.request.urlretrieve(content_key, apt_temp_file)
 			except:
 				self.red('Falha')
 				return False
 			else:
-				os.system(f'sudo apt-key add {content_key}')
+				os.system(f'sudo apt-key add {apt_temp_file}')
 				return True
 
-			if os.path.isfile(self.apt_temp_file) == True:
-				utils.rmdir(self.apt_temp_file)
+			if os.path.isfile(apt_temp_file) == True:
+				utils.rmdir(apt_temp_file)
