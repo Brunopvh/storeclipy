@@ -8,7 +8,7 @@ import pkgmanager # Módulo local
 from time import sleep
 from shutil import which, copytree
 
-REQUERIMENTS_CLI_LINUX = ['curl', 'gpg', 'git', 'xterm', 'errrooooo']
+REQUERIMENTS_CLI_LINUX = ['curl', 'gpg', 'git', 'xterm',]
 REQUERIMENTS_CLI_DEBIAN = ['dirmngr', 'apt-transport-https', 'python3-pip', 'python3-setuptools']
 
 class ConfigureCliRequeriments(utils.SetUserConfig, utils.PrintText):
