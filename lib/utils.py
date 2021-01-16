@@ -12,12 +12,12 @@ import hashlib
 import urllib.request
 import subprocess
 import progressbar # Externo
-from platform import python_version
+import platform
 from pathlib import Path
 from zipfile import ZipFile, is_zipfile
 from bs4 import BeautifulSoup # Externo
 
-if float(python_version()[0:3]) < float(3.7):
+if float(platform.python_version()[0:3]) < float(3.7):
 	print('Erro ... necessário python 3.7 ou superior')
 	sys.exit(1)
 
@@ -36,7 +36,7 @@ CSYellow = '\033[1;33m'
 CSBlue = '\033[1;34m'
 CSWhite = '\033[1;37m'
 
-KERNEL_TYPE = os.uname()[0] 
+KERNEL_TYPE = platform.system() 
 appname = 'storecli-python'
 
 user_agents = [
@@ -122,7 +122,8 @@ class PrintText:
 #=====================================================#
 
 def mkdir(path):
-	if path == '':
+	RegexPath = re.compile("[A-Za-z0-9]+")
+	if RegexPath.match(path) == None:
 		return False
 
 	if os.path.exists(path):
@@ -337,8 +338,10 @@ class SetRootConfig:
 			for key in self.root_info:
 				d = self.root_info[key]
 				if os.path.isdir(d) == False:
-					print(f'Criando o diretório ... {d}')
-					os.system(f'sudo mkdir -p {d}')
+					if os.name == 'nt':
+						mkdir(d)
+					else:
+						os.system(f'sudo mkdir -p {d}')
 		
 	def get_root_info(self):
 		return self.root_info
@@ -395,7 +398,7 @@ class SetUserConfig:
 		if create_dirs == True:
 			for key in self.user_info:
 				d = self.user_info[key]
-				if os.path.isdir(d) == False:
+				if (os.path.isdir(d) == False):
 					mkdir(d)
 		
 	def get_user_info(self):
@@ -452,7 +455,7 @@ class ReleaseInfo(object):
 		else:
 			release_file = None
 
-		if os.path.isfile(release_file) == True:
+		if (release_file != None) and (os.path.isfile(release_file) == True):
 			self.obj_reslease_file = ReadFile(release_file) 
 		self.release_os_info = {}
 
@@ -512,7 +515,6 @@ class ReleaseInfo(object):
 		   use o metodo show_all para ver todas as informações disponiveis.
 		'''
 		self.release_os_info = self.get_info()
-
 		if type_info == 'ALL':
 			return self.release_os_info
 
@@ -826,10 +828,11 @@ class DownloadFiles(SetUserConfig, PrintText):
 		
 		print(f'Baixando ... {output_file}')
 		print('Conectando .... {}'.format(url))
-		if (KERNEL_TYPE == 'Linux') or (KERNEL_TYPE == 'FreeBSD'):
+		if os.name == 'nt':
+			os.system(f'{self.curl_binary_win} -S -L -o {output_file} {url}')
+		elif os.name == 'posix':
 			os.system('curl -S -L -o {} {}'.format(output_file, url))
 			# os.system(f'wine {self.curl_binary_win} -S -L -o {output_file} {url}') # Execução via wine.
-		elif KERNEL_TYPE == 'Windows':
-			os.system(f'{self.curl_binary_win} -S -L -o {output_file} {url}')
+		
 
 

@@ -7,6 +7,7 @@ import utils # Módulo local
 import pkgmanager # Módulo local
 from time import sleep
 from shutil import which, copytree
+from pathlib import Path
 
 REQUERIMENTS_CLI_LINUX = ['curl', 'gpg', 'git', 'xterm',]
 REQUERIMENTS_CLI_DEBIAN = ['dirmngr', 'apt-transport-https', 'python3-pip', 'python3-setuptools']
@@ -14,6 +15,15 @@ REQUERIMENTS_CLI_DEBIAN = ['dirmngr', 'apt-transport-https', 'python3-pip', 'pyt
 class ConfigureCliRequeriments(utils.SetUserConfig, utils.PrintText):
 	def __init__(self):
 		super().__init__(utils.appname)
+		# Verificar se o arquivo de configuração existe.
+		try:
+			Path(self.file_config).touch()
+		except:
+			self.red(f'Não foi possível criar o arquivo de configuração ... {self.file_config}')
+			return False
+		else:
+			print('Arquivo de configuração criado com sucesso em ... {}'.format(self.file_config))
+			
 		self.obj_file_config = utils.ReadFile(self.file_config)
 		self.os_release = utils.ReleaseInfo().get('ALL')
 		self.unpack_files = utils.Unpack(self.dir_unpack, clear_dir=True)
@@ -40,6 +50,10 @@ class ConfigureCliRequeriments(utils.SetUserConfig, utils.PrintText):
 		self.install_requeriments()
 
 	def configure_win64(self):
+		destination_curl = os.path.abspath(os.path.join(self.dir_bin, 'curl-win64'))
+		if os.path.isdir(destination_curl):
+			utils.rmdir(destination_curl)
+
 		url_download_curl_win64 = 'https://curl.se/windows/dl-7.74.0_2/curl-7.74.0_2-win64-mingw.zip'
 		pkg_name = os.path.basename(url_download_curl_win64)
 		path_curl_zipfile = os.path.abspath(os.path.join(self.dir_cache, pkg_name))
@@ -52,7 +66,7 @@ class ConfigureCliRequeriments(utils.SetUserConfig, utils.PrintText):
 				dir_temp_curl = d
 				break
 
-		destination_curl = os.path.abspath(os.path.join(self.dir_bin, 'curl-win64'))
+		
 		print(f'Instalando curl em ... {destination_curl}', end=' ')
 		try:
 			copytree(dir_temp_curl, destination_curl, symlinks=True, ignore=None)
@@ -79,7 +93,7 @@ class ConfigureCliRequeriments(utils.SetUserConfig, utils.PrintText):
 			self.config_bashrc()
 		elif utils.KERNEL_TYPE == 'FreeBSD':
 				pass
-		elif util.KERNEL_TYPE == 'Windows':
+		elif utils.KERNEL_TYPE == 'Windows':
 			self.configure_win64()
 
 		# Gravar 'requeriments=OK' no arquivo de configuração.

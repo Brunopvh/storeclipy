@@ -102,6 +102,13 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 		pkgmanager.AptGet().install('balena-etcher-electron')
 		# pkgmanager.AptGet().broke()
 
+	def etcher_windows(self):
+		self.etcher_url = 'https://github.com/balena-io/etcher/releases/download/v1.5.45/balenaEtcher-Setup-1.5.45.exe'
+		etcher_file_name = os.path.basename(self.etcher_url)
+		self.etcher_package_path = os.path.join(self.dir_cache, etcher_file_name)
+		utils.DownloadFiles().curl_download(self.etcher_url, self.etcher_package_path)
+		os.system(self.etcher_package_path)
+
 	def remove(self):
 		if utils.KERNEL_TYPE == 'Linux':
 			if utils.ReleaseInfo().get('BASE_DISTRO') == 'debian':
@@ -117,10 +124,12 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 				self.etcher_appimage()
 			elif utils.ReleaseInfo().get('ID') == 'debian':
 				self.etcher_debian()
-		elif utils.KERNEL_TYPE == 'Windows':
-			pass
+		elif utils.ReleaseInfo().get('BASE_DISTRO') == 'windows':
+			self.etcher_windows()
 
-		if utils.is_executable('balena-etcher-electron') == True:
+		print(utils.ReleaseInfo().get('BASE_DISTRO'))
+		return
+		if shutil.which('balena-etcher-electron') != None:
 			self.yellow('balenaEtcher instalado com sucesso.')
 			return True
 		else:
@@ -485,7 +494,7 @@ class Browser(utils.SetUserConfig, utils.PrintText):
 		Instalar Google chrome no ArchLinux
 		'''
 		os.chdir(self.dir_temp)
-		utils.DownloadFiles().gitclone('git clone https://aur.archlinux.org/google-chrome.git', self.dir_gitclone)
+		utils.DownloadFiles().gitclone('https://aur.archlinux.org/google-chrome.git', self.dir_gitclone)
 		utils.Pacman().install('base-devel pipewire')
 		os.chdir('google-chrome')
 		self.blue('Executando: makepkg -s -f')
@@ -505,13 +514,14 @@ class Browser(utils.SetUserConfig, utils.PrintText):
 			#return True
 
 		self.msg('Instalando google-chrome')
-		info = utils.ReleaseInfo().get('ID') # Detectar qual o sistema base.
-		if info == 'arch':
+		if self.os_info['BASE_DISTRO'] == 'arch':
 			self.google_chrome_archlinux()
-		elif info == 'debian':
+		elif self.os_info['BASE_DISTRO'] == 'debian':
 			self.google_chrome_debian()
-		elif info == 'fedora':
+		elif self.os_info['BASE_DISTRO'] == 'fedora':
 			self.google_chrome_fedora()
+		elif self.os_info['BASE_DISTRO'] == 'windows':
+			pass
 		else:
 			self.red('Instalação do google-chrome indisponível para o seu sistema')
 			sleep(1)
