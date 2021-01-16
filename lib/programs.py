@@ -436,27 +436,28 @@ class MsFonts(utils.PrintText):
 #-----------------------------------------------------------#
 # Navegadores
 #-----------------------------------------------------------#
-class Browser(utils.ReleaseInfo, utils.PrintText):
+class Browser(utils.SetUserConfig, utils.PrintText):
 	def __init__(self):
-		super().__init__()
+		super().__init__(utils.appname)
 		self.urls_google_chrome = {
 			'debian': 'https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb',
 			'fedora': None,
 			'windows': None
 		}
 
-		if self.get('BASE_DISTRO') == 'debian':
+		self.os_info = utils.ReleaseInfo().get('ALL')
+		if self.os_info['BASE_DISTRO'] == 'debian':
 			self.url = self.urls_google_chrome['debian']
-		elif self.get('BASE_DISTRO') == 'fedora':
+		elif self.os_info['BASE_DISTRO'] == 'fedora':
 			self.url = self.urls_google_chrome['fedora']
-		elif self.get('BASE_DISTRO') == 'windows':
+		elif self.os_info['BASE_DISTRO'] == 'windows':
 			self.url = self.urls_google_chrome['windows']
 		
 	def google_chrome_debian(self):
 		'''
 		Instalar Google chrome no Debian
 		'''
-		print('Adicionando key', end=' ')
+		print('Adicionando key')
 		pkgmanager.AptGet().key_add('https://dl.google.com/linux/linux_signing_key.pub')
 		self.green('Adicionando repositório google-chrome')
 		if utils.is_root() == False:
@@ -483,9 +484,9 @@ class Browser(utils.ReleaseInfo, utils.PrintText):
 		'''
 		Instalar Google chrome no ArchLinux
 		'''
-		os.chdir(DirTemp)
-		os.system('git clone https://aur.archlinux.org/google-chrome.git')
-		Pacman().install('base-devel pipewire')
+		os.chdir(self.dir_temp)
+		utils.DownloadFiles().gitclone('git clone https://aur.archlinux.org/google-chrome.git', self.dir_gitclone)
+		utils.Pacman().install('base-devel pipewire')
 		os.chdir('google-chrome')
 		self.blue('Executando: makepkg -s -f')
 		os.system('makepkg -s -f')

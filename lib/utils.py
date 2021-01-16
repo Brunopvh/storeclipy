@@ -730,9 +730,10 @@ class DowProgressBar():
 class DownloadFiles(SetUserConfig, PrintText):
 	def __init__(self):
 		super().__init__(appname, create_dirs=True)
+		# Caminho do executável curl.exe no Windows.
 		self.curl_binary_win = os.path.abspath(os.path.join(self.dir_bin, 'curl-win64', 'bin', 'curl.exe'))
 
-	def gitclone(self, repo: str, output_dir) -> bool:
+	def gitclone(self, repo: str, output_dir: str) -> bool:
 		'''Clonar repositórios.'''
 		print(f'Entrando no diretório ... {output_dir}')
 		os.chdir(output_dir)
@@ -744,7 +745,7 @@ class DownloadFiles(SetUserConfig, PrintText):
 				if (yes_no == 's') or (yes_no == 'y'):
 					rmdir(d)
 				else:
-					return
+					return True
 
 		os.system(f'git clone {repo}')
 
@@ -762,16 +763,9 @@ class DownloadFiles(SetUserConfig, PrintText):
 			print(f'downloader: Falha informe um url válido')
 			return False
 
-		self.print_line()
 		print(f'Baixando ... {output_file}')
 		print(f'Conectando ... {url}')
-		req = urllib.request.Request(
-		    		url, 
-		    		data=None, 
-		    		headers={
-						'User-Agent': user_agent 
-						}	
-					)
+		req = urllib.request.Request(url, data=None, headers={'User-Agent': user_agent})
 		try:
 			response = urllib.request.urlopen(req)
 		except:
@@ -801,7 +795,6 @@ class DownloadFiles(SetUserConfig, PrintText):
 			if num_bytes and type_file:
 				print('{:.2f}{} | {}'.format(num_total_length, unid, type_file))
 
-			print(f'Salvando em ... {output_file}')
 			urllib.request.urlretrieve(url, output_file, DowProgressBar())
 			return True
 

@@ -6,7 +6,7 @@ import re
 import urllib.request
 from subprocess import getstatusoutput
 from time import sleep
-from utils import PrintText, is_root # Módulo local.
+from utils import PrintText, DownloadFiles, is_root # Módulo local.
 
 class ProcessLoop(PrintText):
 	def __init__(self, pid=''):
@@ -164,7 +164,8 @@ class AptGet(PrintText):
 			import tempfile
 			apt_temp_file = tempfile.NamedTemporaryFile(delete=True).name
 			try:
-				urllib.request.urlretrieve(content_key, apt_temp_file)
+				#urllib.request.urlretrieve(content_key, apt_temp_file)
+				DownloadFiles().downloader(content_key, apt_temp_file)
 			except:
 				self.red('Falha')
 				return False
@@ -174,3 +175,50 @@ class AptGet(PrintText):
 
 			if os.path.isfile(apt_temp_file) == True:
 				utils.rmdir(apt_temp_file)
+
+
+
+class Pacman(PrintText):
+	def __init__(self):
+		super().__init__()
+			
+	def pkg_is_list(self, pkgs):
+		'''
+		Verificar se os pacotes foram passados para classe em forma de lista
+		'''
+		if isinstance(pkgs, list): 
+			return 'True'
+		else:
+			print('\033[0;31mFalha o(s) pacotes para instalação precisam ser passados em forma de uma lista.\033[m') 
+			print(__class__)
+			return 'False'
+	
+	def pacman_process_loop(self):
+		all_procs = ' '
+		
+		while True:
+			all_procs = ProcessLoop().get_process_list()
+			for P in all_procs:
+				if ('pacman -S' in P) or ('pacman -U' in P):
+					pid_pacman = P.split()[1] # Converter a linha de saída em lista e retornar o segundo item.
+					sleep(0.1)
+					break
+				else:
+					pid_pacman = None
+
+			if pid_pacman == None:
+				break
+			else:				
+				ProcessLoop(pid_pacman).process_loop()
+				
+	def install(self, pkgs):
+		self.pacman_process_loop() # Verificar se existe outro processo 'apt' em execução no sistema.
+		self.print_line()
+		print(f'Instalando: {pkgs}')			
+		self.print_line()
+		os.system(f'sudo pacman -S --needed {pkgs}')
+
+	def update(self):
+		self.pacman_process_loop()
+		print('Executando: sudo pacman -Sy')
+		os.system('sudo pacman -Sy')
