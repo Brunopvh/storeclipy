@@ -121,31 +121,25 @@ class PrintText:
 
 #=====================================================#
 
-def mkdir(path):
+def mkdir(path: str) -> bool:
 	RegexPath = re.compile("[A-Za-z0-9]+")
 	if RegexPath.findall(path) == []:
 		return False
 
-	if os.path.exists(path):
-		print(f'mkdir: Arquivo ou diretório já existe ... {path}')
-		if os.path.isdir(path):
-			return True
-		else:
-			return False
-
-	print(f'Criando diretório ... {path}', end=' ')
 	try:
 		os.makedirs(path)
-	except:
-		PrintText().red('')
-		raise
+	except(FileExistsError):
+		PrintText().red(f'O caminho ... {path} ... já existe.')
+	except(PermissionError):
+		PrintText().red('Você não tem permissão [W] em ... {}'.format(path))
+	except Exception as err:
+		print(type(err))
 	else:		
 		if not os.access(path, os.W_OK):
-			print()
-			print("mkdir: Você não tem permissão de escrita em ... {}".format(path))
+			PrintText().red('Você não tem permissão [W] em ... {}'.format(path))
 			return False
 
-		print('OK')
+		print('Diretório criado com sucesso ... {}'.format(path))
 		return True 
 
 def rmdir_old(path, silent=False):
@@ -187,6 +181,8 @@ def rmdir(path: str, silent=False):
 		except Exception as ERR:
 			print(type(ERR))
 			raise
+		else:
+			print('OK')
 	except Exception as err:
 		print(type(err))
 		raise

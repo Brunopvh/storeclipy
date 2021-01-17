@@ -4,7 +4,7 @@
 import os, sys
 import argparse
 
-__version__ = '2021-01-16'
+__version__ = '2021-01-17'
 
 dir_run = os.getcwd()    
 _script = os.path.abspath(os.path.realpath(__file__))

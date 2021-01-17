@@ -81,7 +81,7 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 		name_etcher = os.path.basename(self.etcher_url)
 		self.etcher_package_path = os.path.abspath(os.path.join(self.dir_cache, name_etcher))
 		
-		if utils.DownloadFiles().utils.DownloadFiles().curl_download(self.etcher_url, self.etcher_package_path) == False:
+		if utils.DownloadFiles().curl_download(self.etcher_url, self.etcher_package_path) == False:
 			return False
 			
 		print(f'Instalando em ... {self.etcher_destination_dir}')
@@ -106,7 +106,7 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 		self.etcher_url = 'https://github.com/balena-io/etcher/releases/download/v1.5.45/balenaEtcher-Setup-1.5.45.exe'
 		etcher_file_name = os.path.basename(self.etcher_url)
 		self.etcher_package_path = os.path.join(self.dir_cache, etcher_file_name)
-		utils.DownloadFiles().utils.DownloadFiles().curl_download(self.etcher_url, self.etcher_package_path)
+		utils.DownloadFiles().curl_download(self.etcher_url, self.etcher_package_path)
 		os.system(self.etcher_package_path)
 
 	def remove(self):
@@ -264,7 +264,7 @@ class Idea(utils.SetUserConfig, utils.PrintText):
 			self.syellow('idea-IC já está instalado.')
 			#return True
 
-		utils.DownloadFiles().utils.DownloadFiles().curl_download(self.idea_url, self.idea_tar_file)
+		utils.DownloadFiles().curl_download(self.idea_url, self.idea_tar_file)
 		if utils.sha256(self.idea_tar_file, self.shasum_tar_file) == False:
 			return False
 
@@ -348,7 +348,7 @@ class Pycharm(utils.SetUserConfig, utils.PrintText):
 			pass
 		
 	def windows(self):
-		utils.DownloadFiles().utils.DownloadFiles().curl_download(self.pycharm_url, self.pycharm_pkg)
+		utils.DownloadFiles().curl_download(self.pycharm_url, self.pycharm_pkg)
 		if sha256(self.pycharm_pkg, self.pycharm_shasum) != True:
 			return False
 		os.system(self.pycharm_pkg)
@@ -358,7 +358,7 @@ class Pycharm(utils.SetUserConfig, utils.PrintText):
 			print('Pycharm já instalado use "--remove pycharm" para desinstalar.')
 			return
 
-		utils.DownloadFiles().utils.DownloadFiles().curl_download(self.pycharm_url, self.pycharm_tar_file)
+		utils.DownloadFiles().curl_download(self.pycharm_url, self.pycharm_tar_file)
 		if utils.sha256(self.pycharm_tar_file, self.pycharm_shasum) != True:
 			return False
 
