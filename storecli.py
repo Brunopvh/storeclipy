@@ -161,6 +161,8 @@ elif args.pkg_for_install:          # Instalar um programa
             programs.Veracrypt().install()
         elif pkg == 'google-chrome':
             programs.Browser().google_chrome()
+        elif pkg == 'opera-stable':
+            programs.Browser().opera_stable()
         elif pkg == 'java':
             Java().install()
         elif pkg == 'idea-ic':

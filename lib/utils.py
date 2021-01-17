@@ -70,19 +70,19 @@ class PrintText:
 		self.print_line()
 
 	def printf(self, text=''):
-		print(f'{text}')
+		print(f'{text}', end='')
 
 	def red(self, text=''):
-		print(f'{CRed}[!] {text}{CReset}')
+		print(f'{CRed}[!] {CReset}{text}')
 
 	def green(self, text=''):
-		print(f'{CGreen}[+] {text}{CReset}')
+		print(f'{CGreen}[+] {CReset}{text}')
 
 	def yellow(self, text=''):
-		print(f'{CYellow}{text}{CReset}')
+		print(f'{CYellow} + {CReset}{text}')
 
 	def blue(self, text=''):
-		print(f'{CBlue}{text}{CReset}')
+		print(f'{CBlue} > {CReset}{text}')
 
 	def white(self, text=''):
 		print(f'{CWhite}{text}{CReset}')
@@ -137,8 +137,8 @@ def mkdir(path):
 	try:
 		os.makedirs(path)
 	except:
-		print('{}Erro{}'.format(CRed, CReset))
-		return False
+		PrintText().red('')
+		raise
 	else:		
 		if not os.access(path, os.W_OK):
 			print()
@@ -148,7 +148,7 @@ def mkdir(path):
 		print('OK')
 		return True 
 
-def rmdir(path, silent=False):
+def rmdir_old(path, silent=False):
 	if os.path.exists(path) == False:
 		print(f'Não encontrado ... {path}')
 		return False
@@ -162,6 +162,34 @@ def rmdir(path, silent=False):
 	except:
 		print(f'{CRed}Erro{CReset}')
 		return False
+	else:
+		print('OK')
+		return True
+
+def rmdir(path: str, silent=False):
+	'''
+	Recebe um arquivo ou diretório para ser deletado.
+	Caso a operação falhe será disparada uma exceção.
+	'''
+
+	print(f'Apagando ... {path}', end=' ')
+	try:
+		# Tratar como diretório.
+		shutil.rmtree(path)
+	except(FileNotFoundError):
+		PrintText().red('arquivo ou diretório não existe.')
+	except(PermissionError):
+		PrintText().red('sem permissão [W]')
+	except(NotADirectoryError):
+		# Tratar como arquivo.
+		try:
+			os.remove(path)
+		except Exception as ERR:
+			print(type(ERR))
+			raise
+	except Exception as err:
+		print(type(err))
+		raise
 	else:
 		print('OK')
 		return True
@@ -198,7 +226,7 @@ def sha256(file: str, sum: str) -> bool:
 		print('OK')
 		return True
 	else:
-		PrintText().red('FALHA')
+		PrintText().red('Falha')
 		return False
 
 def is_executable(app_executable: str) -> bool:
@@ -216,15 +244,14 @@ class ReadFile(PrintText):
 		'''
 		Ler um arquivo e retornar as linhas em forma de lista.
 		'''
-		if os.path.isfile(self.file) == False:
-			self.red(f'read_file: Erro arquivo não encontrado.')
-			return None
-
 		try:
 			with open(self.file, 'rt') as f:
 				lines = f.read().split('\n')
-		except:
-			print(f'read_file: Erro na leitura do arquivo {self.file}')
+		except(FileNotFoundError):
+			self.red('{} arquivo não encontrado ... {}'.format(__class__.__name__, self.file))
+			return []
+		except Exception as err:
+			print(__class__.__name__, type(err))
 			return []
 		else:
 			return lines
@@ -238,14 +265,23 @@ class ReadFile(PrintText):
 	       - Quebras de linha são adicionadas ao fim de cada elemento da lista.
 	       - Se o arquivo 'file' já existir a função será encerrada.
 		'''
-		print(f'write_file: gravando dados no arquivo ... {self.file}', end=' ')
+		if not (isinstance(content, list)):
+			self.red(f'{__class__.__name__} o conteúdo a ser escrito precisa ser do  tipo "list".')
+			return False
+
+		print('{} escrevendo no arquivo {}'.format(__class__.__name__, self.file), end= ' ')
 		try:
 			with open(self.file, 'w') as f:
 				for L in content:
 					if L != '':
 						f.write(f'{L}\n')
-		except:
-			self.red(f'Erro')
+		except(PermissionError):
+			print()
+			self.red('{} você não tem permissão de escrita no arquivo.'.format(__class__.__name__))
+			return False
+		except Exception as err:
+			print()
+			self.red(type(err))
 			return False
 		else:
 			print('OK')
@@ -258,17 +294,16 @@ class ReadFile(PrintText):
 		uma lista vazia [].
 		'''
 		if os.path.isfile(self.file) == False:
-			self.red(f'string_in_file: Erro arquivo não existe {self.file}')
+			self.red(f'{__class__.__name__} o arquivo não existe.')
 			return []
 
 		try:
 			content = self.read_file()
-		except:
-			self.red(f'{__class__.__name__} string_in_file: Erro na leitura do arquivo {self.file}')
+		except Exception as err:
+			self.red(f'{__class__.__name__} {type(err)}')
 			return []
 		else:
-			if content == False:
-				self.red(f'string_in_file: erro na leitura do arquivo ... {file}')
+			if content == []:
 				return []
 
 		ContentMath = []
@@ -363,6 +398,8 @@ class SetUserConfig:
 			self.dir_gnupg = os.path.abspath(os.path.join(self.dir_home, '.gnupg'))
 			self.dir_config = os.path.abspath(os.path.join(self.dir_home, '.config', self.appname))
 			self.file_config = os.path.abspath(os.path.join(self.dir_config, f'{self.appname}.conf'))
+			self.file_bashrc = os.path.abspath(os.path.join(self.dir_home, '.bashrc'))
+			Path(self.file_bashrc).touch()
 		elif self.kernel_type == 'Windows':
 			self.dir_bin = os.path.abspath(os.path.join(self.dir_home, 'AppData', 'Local', 'Programs', self.appname))
 			self.dir_icons = ''
@@ -417,14 +454,13 @@ class SetUserConfig:
 		# Verificar se ~/.local/bin já está no PATH do usuário atual.
 		user_local_path = os.environ['PATH']
 		if self.dir_bin in user_local_path:
-			pass #return True
+			return True
 
-		file_bashrc = os.path.abspath(os.path.join(self.dir_home, '.bashrc'))
-		file_bashrc_backup = os.path.abspath(os.path.join(self.dir_home, f'.bashrc.pre-{self.appname}'))
+		file_bashrc_backup = os.path.join('{}-{}-{}'.format(self.file_bashrc, 'pre', {self.appname}))
 		if os.path.isfile(file_bashrc_backup) == False:
-			shutil.copyfile(file_bashrc, file_bashrc_backup)
+			shutil.copyfile(self.file_bashrc, file_bashrc_backup)
 
-		obj_bashrc = ReadFile(file_bashrc)
+		obj_bashrc = ReadFile(self.file_bashrc)
 		content_bashrc = obj_bashrc.string_in_file('^export PATH=')
 
 		if (content_bashrc != []) and (self.dir_bin in content_bashrc[0]):

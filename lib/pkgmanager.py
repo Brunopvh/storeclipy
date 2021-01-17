@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
+import os, sys
 import re
-import urllib.request
 from subprocess import getstatusoutput
 from time import sleep
 from utils import PrintText, DownloadFiles, is_root # Módulo local.
@@ -69,7 +68,7 @@ class ProcessLoop(PrintText):
 			
 
 class AptGet(PrintText):
-
+	
 	def __init__(self):
 		super().__init__()
 
@@ -162,21 +161,27 @@ class AptGet(PrintText):
 
 			# Obter key apartir do url.
 			import tempfile
+			import urllib.request
 			apt_temp_file = tempfile.NamedTemporaryFile(delete=True).name
+			self.printf('Importando key ')
 			try:
 				#urllib.request.urlretrieve(content_key, apt_temp_file)
-				DownloadFiles().downloader(content_key, apt_temp_file)
+				urllib.request.urlretrieve(content_key, apt_temp_file)
 			except:
-				self.red('Falha')
-				return False
+				self.red('key_add: Falha')
+				raise
 			else:
-				os.system(f'sudo apt-key add {apt_temp_file}')
-				return True
-
-			if os.path.isfile(apt_temp_file) == True:
+				OutPut = getstatusoutput(f'sudo apt-key add {apt_temp_file}')
+				if OutPut[0] == 0:
+					print('OK')
+					return True
+				else:
+					self.red('')
+					print(OutPut[1])
+					sys.exit(1)
+			finally:
+				#self.blue('Removendo arquivo temporário ... {}'.format(apt_temp_file))
 				utils.rmdir(apt_temp_file)
-
-
 
 class Pacman(PrintText):
 	def __init__(self):

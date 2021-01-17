@@ -81,7 +81,7 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 		name_etcher = os.path.basename(self.etcher_url)
 		self.etcher_package_path = os.path.abspath(os.path.join(self.dir_cache, name_etcher))
 		
-		if utils.DownloadFiles().curl_download(self.etcher_url, self.etcher_package_path) == False:
+		if utils.DownloadFiles().utils.DownloadFiles().curl_download(self.etcher_url, self.etcher_package_path) == False:
 			return False
 			
 		print(f'Instalando em ... {self.etcher_destination_dir}')
@@ -106,7 +106,7 @@ class Etcher(utils.SetUserConfig, utils.PrintText):
 		self.etcher_url = 'https://github.com/balena-io/etcher/releases/download/v1.5.45/balenaEtcher-Setup-1.5.45.exe'
 		etcher_file_name = os.path.basename(self.etcher_url)
 		self.etcher_package_path = os.path.join(self.dir_cache, etcher_file_name)
-		utils.DownloadFiles().curl_download(self.etcher_url, self.etcher_package_path)
+		utils.DownloadFiles().utils.DownloadFiles().curl_download(self.etcher_url, self.etcher_package_path)
 		os.system(self.etcher_package_path)
 
 	def remove(self):
@@ -176,10 +176,10 @@ class Veracrypt(utils.SetUserConfig, utils.PrintText):
 		utils.DownloadFiles().wget_download(self.url_veracrypt_package, self.path_veracrypt_package)
 		utils.DownloadFiles().downloader(self.url_veracrypt_sig, self.path_veracrypt_sig)
 
-		utils.gpg_import(self.path_veracrypt_pub_key, self.url_veracrypt_pub_key)
+		utils.utils.gpg_import(self.path_veracrypt_pub_key, self.url_veracrypt_pub_key)
 
 		# Verificar a intergridade do pacote de instalação. 
-		if utils.gpg_verify(self.path_veracrypt_sig, self.path_veracrypt_package) != True:
+		if utils.utils.gpg_verify(self.path_veracrypt_sig, self.path_veracrypt_package) != True:
 			return False
 
 		self.unpack_files.tar(self.path_veracrypt_package)
@@ -264,7 +264,7 @@ class Idea(utils.SetUserConfig, utils.PrintText):
 			self.syellow('idea-IC já está instalado.')
 			#return True
 
-		utils.DownloadFiles().curl_download(self.idea_url, self.idea_tar_file)
+		utils.DownloadFiles().utils.DownloadFiles().curl_download(self.idea_url, self.idea_tar_file)
 		if utils.sha256(self.idea_tar_file, self.shasum_tar_file) == False:
 			return False
 
@@ -348,7 +348,7 @@ class Pycharm(utils.SetUserConfig, utils.PrintText):
 			pass
 		
 	def windows(self):
-		utils.DownloadFiles().curl_download(self.pycharm_url, self.pycharm_pkg)
+		utils.DownloadFiles().utils.DownloadFiles().curl_download(self.pycharm_url, self.pycharm_pkg)
 		if sha256(self.pycharm_pkg, self.pycharm_shasum) != True:
 			return False
 		os.system(self.pycharm_pkg)
@@ -358,7 +358,7 @@ class Pycharm(utils.SetUserConfig, utils.PrintText):
 			print('Pycharm já instalado use "--remove pycharm" para desinstalar.')
 			return
 
-		utils.DownloadFiles().curl_download(self.pycharm_url, self.pycharm_tar_file)
+		utils.DownloadFiles().utils.DownloadFiles().curl_download(self.pycharm_url, self.pycharm_tar_file)
 		if utils.sha256(self.pycharm_tar_file, self.pycharm_shasum) != True:
 			return False
 
@@ -466,12 +466,15 @@ class Browser(utils.SetUserConfig, utils.PrintText):
 		'''
 		Instalar Google chrome no Debian
 		'''
-		print('Adicionando key')
-		pkgmanager.AptGet().key_add('https://dl.google.com/linux/linux_signing_key.pub')
-		self.green('Adicionando repositório google-chrome')
 		if utils.is_root() == False:
 			return False
 
+		try:
+			pkgmanager.AptGet().key_add('https://dl.google.com/linux/linux_signing_key.pub')
+		except:
+			sys.exit(1)
+		
+		self.green('Adicionando repositório google-chrome')
 		google_chrome_tempfile = tempfile.NamedTemporaryFile(delete=True).name 
 		obj_temp_file = utils.ReadFile(google_chrome_tempfile)
 		obj_temp_file.write_file(['deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main'])
@@ -530,21 +533,27 @@ class Browser(utils.SetUserConfig, utils.PrintText):
 		pass
 
 	def opera_stable_debian(self):
-		opera_repo_debian='deb [arch=amd64] https://deb.opera.com/opera-stable/ stable non-free'
-		opera_file='/etc/apt/sources.list.d/opera-stable.list'
-
-		self.yellow("Importando key")
-		os.system('wget -q http://deb.opera.com/archive.key -O- | sudo apt-key add -')
-		self.yellow("Adicionando repositório")
-		os.system(f'echo "{opera_repo_debian}" | sudo tee {opera_file}')
-		AptGet().update()
-		AptGet().install('opera-stable')
+		if utils.is_root() == False:
+			return False
+			
+		try:
+			pkgmanager.AptGet().key_add('http://deb.opera.com/archive.key')
+		except Exception as err:
+			print(err)
+			sys.exit(1)
+		# Adicionar repositório em sources.list.d
+		self.green("Adicionando repositório")
+		obj_opera_stable_temp_file = utils.ReadFile(self.file_temp)
+		obj_opera_stable_temp_file.write_file(['deb [arch=amd64] https://deb.opera.com/opera-stable/ stable non-free'])
+		os.system('sudo mv {} {}'.format(self.file_temp, '/etc/apt/sources.list.d/opera-stable.list'))
+		pkgmanager.AptGet().update()
+		utils.AptGet().install('opera-stable')
 
 	def opera_stable_fedora(self):
 		os.system("Executando ... sudo rpm --import https://rpm.opera.com/rpmrepo.key")
 		os.system('sudo rpm --import https://rpm.opera.com/rpmrepo.key')
-		print(f'Executando ... cd {DirTemp}')
-		os.chdir(DirTemp)
+		print(f'Executando ... cd {self.dir_temp}')
+		os.chdir(self.dir_temp)
 
 		self.yellow("Adicionando repositório")
 		# Gerar arquivo/repositório
@@ -572,13 +581,14 @@ class Browser(utils.SetUserConfig, utils.PrintText):
 			return True
 
 		self.msg('Instalando opera-stable')
-		info = utils.ReleaseInfo().get('ID') # Detectar qual o sistema base.
-		if info == 'arch':
+		if self.os_info['BASE_DISTRO'] == 'arch':
 			self.opera_stable_archlinux()
-		elif info == 'debian':
+		elif self.os_info['BASE_DISTRO'] == 'debian':
 			self.opera_stable_debian()
-		elif info == 'fedora':
+		elif self.os_info['BASE_DISTRO'] == 'fedora':
 			self.opera_stable_fedora()
+		elif self.os_info['BASE_DISTRO'] == 'windows':
+			pass
 		else:
 			self.red('Instalação de opera-stable indisponível para o seu sistema')
 			sleep(1)
@@ -587,7 +597,7 @@ class Browser(utils.SetUserConfig, utils.PrintText):
 		if utils.KERNEL_TYPE == 'Linux':
 			url_torbrowser_installer = 'https://raw.github.com/Brunopvh/torbrowser/master/tor.sh'
 			path_torbrowser_installer = os.path.abspath(os.path.join(DirDownloads, 'tor.sh'))
-			curl_download(url_torbrowser_installer, path_torbrowser_installer)
+			utils.DownloadFiles().curl_download(url_torbrowser_installer, path_torbrowser_installer)
 			os.system(f'chmod +x {path_torbrowser_installer}')
 			os.system(f'{path_torbrowser_installer} --install')
 		else:
@@ -606,16 +616,19 @@ class YoutubeDl(utils.PrintText):
 		self.url_asc_sergey = 'https://dstftw.github.io/keys/18A9236D.asc'
 		self.url_youtubedl_sig = 'https://yt-dl.org/downloads/latest/youtube-dl.sig'
 		self.url_youtube_dl = 'https://yt-dl.org/downloads/latest/youtube-dl'
-		self.path_asc_philipp = os.path.abspath(os.path.join(DirTemp, 'philipp.asc'))
-		self.path_youtube_dl_sig = os.path.abspath(os.path.join(DirTemp, 'youtube-dl.sig'))
+		self.path_asc_philipp = os.path.abspath(os.path.join(self.dir_temp, 'philipp.asc'))
+		self.path_youtube_dl_sig = os.path.abspath(os.path.join(self.dir_temp, 'youtube-dl.sig'))
 		self.path_youtube_dl_file = os.path.abspath(os.path.join(DirDownloads, 'youtube-dl'))
+
+		if utils.KERNEL_TYPE == 'Windows':
+			self.url_youtube_dl += '.exe'
 		
 	def linux(self):
-		curl_download(self.url_asc_philipp, self.path_asc_philipp)
-		curl_download(self.url_youtubedl_sig, self.path_youtube_dl_sig)
-		curl_download(self.url_youtube_dl, self.path_youtube_dl_file)
-		gpg_import(self.path_asc_philipp)
-		if (gpg_verify(self.path_youtube_dl_sig, self.path_youtube_dl_file) != True):
+		utils.DownloadFiles().curl_download(self.url_asc_philipp, self.path_asc_philipp)
+		utils.DownloadFiles().curl_download(self.url_youtubedl_sig, self.path_youtube_dl_sig)
+		utils.DownloadFiles().curl_download(self.url_youtube_dl, self.path_youtube_dl_file)
+		utils.gpg_import(self.path_asc_philipp)
+		if (utils.gpg_verify(self.path_youtube_dl_sig, self.path_youtube_dl_file) != True):
 			return False
 
 		os.system(f'cp {self.path_youtube_dl_file} {self.dir_bin}/youtube-dl')
@@ -648,7 +661,7 @@ class YoutubeDlGui(utils.PrintText):
 			sys.exit('1')
 			
 	def compile_ytdlg(self):
-		curl_download(self.URL, self.path_file_zip)
+		utils.DownloadFiles().curl_download(self.URL, self.path_file_zip)
 		Unpack().zip(self.path_file_zip)
 		os.chdir(f'{DirUnpack}/youtube-dl-gui-master')
 		self.yellow('Compilando youtube-dl-gui')
@@ -666,7 +679,7 @@ class YoutubeDlGui(utils.PrintText):
 		'''
 		Cria o arquivo de configuração ".desktop" para o root.
 		'''
-		os.chdir(DirTemp)
+		os.chdir(self.dir_temp)
 		if utils.KERNEL_TYPE == 'Linux':
 			f = '/usr/share/applications/youtube-dl-gui.desktop'
 		elif utils.KERNEL_TYPE == 'FreeBSD':
