@@ -123,7 +123,7 @@ class PrintText:
 
 def mkdir(path):
 	RegexPath = re.compile("[A-Za-z0-9]+")
-	if RegexPath.match(path) == None:
+	if RegexPath.findall(path) == []:
 		return False
 
 	if os.path.exists(path):

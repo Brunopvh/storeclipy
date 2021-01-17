@@ -2,12 +2,12 @@
 #
 # 
 
-__version__ = '2021-01-10'
+__version__ = '2021-01-16'
 
 import os, sys
 import argparse
 from platform import python_version
-from shutil import copytree
+from shutil import copytree, which
 
 if float(python_version()[0:3]) < float(3.7):
 	print('Nescessário python 3.7 ou superior para prosseguir.')
@@ -23,7 +23,7 @@ URL_STORECLIPY='https://github.com/Brunopvh/storeclipy/archive/master.tar.gz'
 
 class InstallStorecliUser(utils.SetUserConfig, utils.PrintText):
 	def __init__(self):
-		super().__init__(utils.appname)
+		super().__init__(utils.appname, create_dirs=True)
 		self.pkg_storecli = os.path.abspath(os.path.join(self.dir_temp, 'storecli.tar.gz'))
 		self.destination_storecli = os.path.abspath(os.path.join(self.dir_bin, 'storeclipy-amd64'))
 		self.destination_storecli_link = os.path.abspath(os.path.join(self.dir_bin, 'storeclipy'))
@@ -75,6 +75,9 @@ class InstallStorecliUser(utils.SetUserConfig, utils.PrintText):
 			
 		elif utils.KERNEL_TYPE == 'Windows':
 			pass
+
+		if which('storeclipy') != None:
+			print('OK')
 
 '''
 parser = argparse.ArgumentParser(
