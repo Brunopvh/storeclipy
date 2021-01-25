@@ -56,6 +56,9 @@ class InstallStorecliUser(utils.SetUserConfig, utils.PrintText):
 
 	def install_storecli_local(self):
 		os.chdir(dir_of_project)
+		if os.path.isdir(self.destination_storecli) == True:
+			utils.rmdir(self.destination_storecli)
+			
 		print(f'Copiando ... {dir_of_project}')
 		copytree(dir_of_project, self.destination_storecli)
 		self.create_link_exec()
