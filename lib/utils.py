@@ -652,14 +652,15 @@ def get_html_lines(url: str) -> list:
 		print(f'Erro: url inválida.')
 		return False
 
-	print(f'Conectando ... {url}')
+	print(f'Conectando ... {url}', end=' ')
 	try: 
 		req = urllib.request.Request(url, data=None, headers={'User-Agent': user_agent})
 		html = urllib.request.urlopen(req)
 	except:
-		self.red('get_html_lines: Erro')
+		self.red('get_html_lines: Falha')
 		return []
 	else:
+		print('OK')
 		return (html.read().decode('utf-8').split('\n'))
 
 def get_html_page(url: str) -> list:
@@ -671,14 +672,15 @@ def get_html_page(url: str) -> list:
 		print(f'Erro: url inválida.')
 		return False
 
-	print(f'Conectando ... {url}')
+	print(f'Conectando ... {url}', end=' ')
 	try: 
 		req = urllib.request.Request(url, data=None, headers={'User-Agent': user_agent})
 		html = urllib.request.urlopen(req)
 	except:
-		self.red('get_html_lines: Erro')
+		self.red('get_html_page: Falha')
 		return []
 	else:
+		print('OK')
 		return (html.read().decode('utf-8'))
 
 def get_html_links(url: str) -> list:

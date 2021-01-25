@@ -2,7 +2,7 @@
 #
 # 
 
-__version__ = '2021-01-16'
+__version__ = '2021-01-24'
 
 import os, sys
 import argparse
@@ -30,9 +30,6 @@ class InstallStorecliUser(utils.SetUserConfig, utils.PrintText):
 		self.destination_storecli_bin = os.path.abspath(os.path.join(self.destination_storecli, 'storecli.py'))
 		self.unpack_files = utils.Unpack(destination=self.dir_unpack, clear_dir=True)
 
-		if os.path.isdir(self.destination_storecli) == True:
-			utils.rmdir(self.destination_storecli)
-
 	def install_storecli_online_version_linux(self):
 		utils.DownloadFiles().wget_download(URL_STORECLIPY, self.pkg_storecli)
 		self.unpack_files.tar(self.pkg_storecli)
@@ -42,6 +39,9 @@ class InstallStorecliUser(utils.SetUserConfig, utils.PrintText):
 			if 'storecli' in d:
 				storecli_temp_dir = d
 				break
+
+		if os.path.isdir(self.destination_storecli) == True:
+			utils.rmdir(self.destination_storecli)
 
 		print(f'Copiando arquivos para ... {self.destination_storecli}', end=' ')
 		try:
@@ -79,40 +79,12 @@ class InstallStorecliUser(utils.SetUserConfig, utils.PrintText):
 		if which('storeclipy') != None:
 			print('OK')
 
-'''
-parser = argparse.ArgumentParser(
-            description='Instala programas em sistemas Linux e FreeBSD.'
-            )
-
-parser.add_argument(
-    '-v', '--version', 
-    action='version', 
-    version=(f"%(prog)s {__version__}")
-    )
-
-parser.add_argument(
-    '-i', '--install',
-    action='store_true', 
-    dest='install_storecli', # Argumento que não será passado para opção -l/--list.
-    help='Instala o script storecli no sistema.'
-    )
-
-parser.add_argument(
-    '-u', '--uninstall',
-    action='store_true', 
-    dest='uninstall_storecli', # Argumento que não será passado para opção -l/--list.
-    help='Desinstala o script storecli no sistema.'
-    )
-
-
-args = parser.parse_args()
-'''
-
-if (len(sys.argv) == 1):
-	InstallStorecliUser().run(online=True)
-else:
-	if (sys.argv[1] == 'install'):
-		print('Aguarde')
-		InstallStorecliUser().run()
-	elif (sys.argv[1] == 'uninstall'):
-		pass
+if __name__ == '__main__':
+	if (len(sys.argv) == 1):
+		InstallStorecliUser().run(online=True)
+	else:
+		if (sys.argv[1] == 'install'):
+			print('Aguarde')
+			InstallStorecliUser().run()
+		elif (sys.argv[1] == 'uninstall'):
+			pass

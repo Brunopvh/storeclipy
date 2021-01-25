@@ -4,13 +4,14 @@
 import os, sys
 import argparse
 
-__version__ = '2021-01-17'
+__version__ = '2021-01-24'
 
 dir_run = os.getcwd()    
 _script = os.path.abspath(os.path.realpath(__file__))
 
 # Endereço deste script no disco.
 dir_of_executable = os.path.dirname(_script) 
+dir_of_project = dir_of_executable
 
 # Diretórios contento módulos locais.
 dir_local_libs = os.path.abspath(os.path.join(dir_of_executable, 'lib'))
@@ -88,6 +89,14 @@ parser.add_argument(
     help='Diretório para download'
     )
 
+
+parser.add_argument(
+    '-u', '--self-update',
+    action='store_true', 
+    dest='self_update', # Argumento que não será passado para opção -l/--list.
+    help='Instalar a versão mais recente deste programa apartir do github.'
+    )
+
 args = parser.parse_args()
 
 #----------------------------------------------------------#
@@ -153,7 +162,12 @@ if args.list_all_apps: # Listar os aplicativos disponiveis para instalação.
         print('   ', app)
 elif args.configure_requeriments:
     ConfigureCliRequeriments().check_all_requeriments()
+elif args.self_update:
+    programs.__self_update__(dir_of_project)
 elif args.pkg_for_install:          # Instalar um programa
+    # Verificar por nova versão uma vez por dia.
+    programs.check_update_local(dir_of_project)
+
     for pkg in args.pkg_for_install:
         if pkg == 'etcher':
             programs.Etcher().install()

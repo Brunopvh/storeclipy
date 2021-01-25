@@ -17,6 +17,66 @@ import tempfile
 import utils
 import pkgmanager
 
+def get_online_version() -> str:
+	url_script_storecli_online = 'https://raw.github.com/Brunopvh/storeclipy/master/storecli.py'
+	content = utils.get_html_lines(url_script_storecli_online) 
+	rg_expr = re.compile(r'^__version__.*-[0-9][0-9]')
+	for line in content:
+		if rg_expr.findall(line) != []:
+			online_version = line
+			online_version = re.sub(r"'", '', online_version)
+			break
+
+	online_version = online_version.replace('__version__', '').replace('=', '').replace(' ', '')
+	return str(online_version)
+
+def __self_update__(dir_of_project: str) -> bool:
+	'''
+	Recebe como argumento o diretório raiz deste projeto para executar o script setup.py
+	Instala a ultima versão deste programa no sistema.
+	'''
+	utils.PrintText().yellow(f'Instalando atualização.')
+	os.chdir(dir_of_project)
+	from setup import InstallStorecliUser
+	InstallStorecliUser().run(online=True)
+	del InstallStorecliUser
+	return True
+
+def check_update_local(dir_of_project: str):
+	'''
+	Verificar por atualizações uma vez por dia, e instalar atualização 
+	se houver nova versão no github.
+	'''
+	from datetime import date
+	date_now = date.today()
+	config_user = utils.SetUserConfig(utils.appname, create_dirs=True)
+	file_cfg = config_user.file_config
+	obj_file_cfg = utils.ReadFile(file_cfg)
+	match = obj_file_cfg.string_in_file('day_update=')
+	if (match != []):
+		if (match[0].replace('day_update=', '')) == str(date_now):
+			pass
+			return True
+	else:
+		content = obj_file_cfg.read_file()
+		content.append(f'day_update={date_now}')
+		obj_file_cfg.write_file(content)
+
+	online_version = get_online_version()
+	__self_update__(dir_of_project)
+
+	content = obj_file_cfg.read_file()
+	for num in range(0, len(content)):
+		line = content[num]
+		if 'day_update=' in line:
+			del content[num]
+			break
+
+	content.append(f'day_update={date_now}')
+	obj_file_cfg.write_file(content)
+
+
+
 #-----------------------------------------------------------#
 # Acessórios
 #-----------------------------------------------------------#
